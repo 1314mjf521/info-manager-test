@@ -1,0 +1,56 @@
+# Filebeat配置文件
+# 用于收集应用日志并发送到Elasticsearch
+
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/app/*.log
+  fields:
+    service: info-management-system
+    environment: production
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+- type: container
+  enabled: true
+  paths:
+    - '/var/lib/docker/containers/*/*.log'
+  processors:
+    - add_docker_metadata:
+        host: "unix:///var/run/docker.sock"
+
+processors:
+- add_host_metadata:
+    when.not.contains.tags: forwarded
+
+- decode_json_fields:
+    fields: ["message"]
+    target: ""
+    overwrite_keys: true
+
+output.elasticsearch:
+  hosts: ["${ELASTICSEARCH_HOST:elasticsearch:9200}"]
+  index: "info-system-logs-%{+yyyy.MM.dd}"
+  template.name: "info-system"
+  template.pattern: "info-system-*"
+  template.settings:
+    index.number_of_shards: 1
+    index.number_of_replicas: 0
+
+setup.template.enabled: true
+setup.template.name: "info-system"
+setup.template.pattern: "info-system-*"
+
+setup.kibana:
+  host: "kibana:5601"
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644

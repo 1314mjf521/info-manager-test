@@ -1,0 +1,48 @@
+server:
+  port: "8080"
+  mode: "debug"
+
+
+
+# database:
+#   type: "mysql"
+#   host: "192.168.100.16"
+#   port: "3308"
+#   username: "root"
+#   password: "bad917d50b6cf693"
+#   database: "manger_info"
+#   ssl_mode: "disable"
+
+
+
+
+
+database:
+  driver: "sqlite"
+  sqlite:
+    path: "data/info_system.db"
+    # SQLite优化配置，解决数据库锁问题
+    journal_mode: "WAL"          # 启用WAL模式提高并发性
+    busy_timeout: 30000          # 忙等待超时30秒
+    cache_size: -64000           # 缓存大小64MB
+    page_size: 4096              # 页面大小4KB
+    synchronous: "NORMAL"        # 同步模式
+    temp_store: "MEMORY"         # 临时存储在内存
+    max_open_conns: 1            # SQLite推荐单连接
+    max_idle_conns: 1            # 最大空闲连接
+    conn_max_lifetime: "1h"      # 连接最大生命周期
+    conn_max_idle_time: "30m"    # 连接最大空闲时间
+
+redis:
+  host: "localhost"
+  port: "6379"
+  password: ""
+  db: 0
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expire_time: 24
+
+log:
+  level: "info"
+  format: "json"

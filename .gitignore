@@ -1,0 +1,75 @@
+# 二进制文件
+build/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 测试文件
+*.test
+coverage.out
+coverage.html
+
+# 依赖目录
+vendor/
+
+# Go工作空间文件
+go.work
+
+# 环境变量文件
+.env
+.env.local
+
+# 数据文件
+data/
+logs/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 配置文件（包含敏感信息）
+configs/config.local.yaml
+configs/config.prod.yaml
+
+# Docker相关
+.dockerignore
+
+# 证书文件
+*.pem
+*.key
+*.crt
+*.p12
+
+# 备份文件
+*.bak
+*.backup
+
+# 上传文件
+uploads/
+files/
+
+# 文档生成
+docs/
+swagger/

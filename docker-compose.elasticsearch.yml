@@ -1,0 +1,80 @@
+# Elasticsearch扩展配置
+# 用于日志收集和搜索功能（可选）
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.elasticsearch.yml up
+
+version: '3.8'
+
+services:
+  # Elasticsearch - 日志存储和搜索
+  elasticsearch:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/elasticsearch:8.11.0
+    container_name: info-system-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Kibana - Elasticsearch可视化界面
+  kibana:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/kibana:8.11.0
+    container_name: info-system-kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - SERVER_HOST=0.0.0.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Filebeat - 日志收集器
+  filebeat:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/elastic/filebeat:8.11.0
+    container_name: info-system-filebeat
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./logs:/var/log/app:ro
+      - ./deployments/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  elasticsearch_data:
+    driver: local
+
+networks:
+  app-network:
+    external: true

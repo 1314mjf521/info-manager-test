@@ -1,0 +1,144 @@
+# 信息记录管理系统配置文件示例
+# 复制此文件为 config.yaml 并修改相应配置
+
+# 服务器配置
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "release"  # debug, release, test
+  read_timeout: 30s
+  write_timeout: 30s
+
+# 数据库配置
+database:
+  driver: "sqlite"  # sqlite, mysql, postgres
+  # SQLite 配置（推荐用于单机部署）
+  sqlite:
+    path: "data/info_system.db"
+  
+  # MySQL 配置（可选）
+  mysql:
+    host: "localhost"
+    port: 3306
+    username: "root"
+    password: "password"
+    database: "info_system"
+    charset: "utf8mb4"
+    
+  # PostgreSQL 配置（可选）
+  postgres:
+    host: "localhost"
+    port: 5432
+    username: "postgres"
+    password: "password"
+    database: "info_system"
+    sslmode: "disable"
+    timezone: "Asia/Shanghai"
+
+  # 连接池配置
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600s
+
+# JWT 配置
+jwt:
+  secret: "your-secret-key-change-this-in-production"
+  expires_in: 24h
+  refresh_expires_in: 168h  # 7 days
+
+# 日志配置
+log:
+  level: "info"  # debug, info, warn, error
+  format: "text"  # text, json
+  output: "stdout"  # stdout, file
+  file_path: "logs/app.log"
+
+# Redis 配置（可选，用于缓存）
+redis:
+  enabled: false
+  host: "localhost"
+  port: 6379
+  password: ""
+  database: 0
+
+# 文件存储配置
+storage:
+  type: "local"  # local, s3, oss
+  local:
+    upload_path: "uploads"
+    max_file_size: 10485760  # 10MB
+  allowed_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".doc"
+    - ".docx"
+    - ".xls"
+    - ".xlsx"
+    - ".txt"
+
+# AI 服务配置（可选）
+ai:
+  enabled: false
+  openai:
+    api_key: "your-openai-api-key"
+    model: "gpt-3.5-turbo"
+    max_tokens: 1000
+    temperature: 0.7
+
+# 通知配置（可选）
+notification:
+  enabled: false
+  wechat:
+    corp_id: "your-corp-id"
+    corp_secret: "your-corp-secret"
+    agent_id: 1000001
+  email:
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    username: "your-email@gmail.com"
+    password: "your-app-password"
+
+# 安全配置
+security:
+  cors:
+    allowed_origins:
+      - "http://localhost:3000"
+      - "http://127.0.0.1:3000"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed_headers:
+      - "Origin"
+      - "Content-Type"
+      - "Authorization"
+    allow_credentials: true
+  
+  rate_limit:
+    enabled: true
+    requests_per_minute: 100
+    
+  password:
+    min_length: 8
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_symbols: false
+
+# 系统配置
+system:
+  default_page_size: 20
+  max_page_size: 100
+  audit_log_retention_days: 90
+  session_timeout: 1800s  # 30 minutes
+  
+  # 默认管理员账号（首次启动时创建）
+  admin:
+    username: "admin"
+    email: "admin@example.com"
+    password: "admin123"  # 请在生产环境中修改
