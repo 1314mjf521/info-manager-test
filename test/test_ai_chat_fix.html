@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI聊天功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #409eff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+        button:disabled {
+            background: #c0c4cc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #f0f9ff;
+            border: 1px solid #b3d8ff;
+            color: #0066cc;
+        }
+        .error {
+            background: #fff2f0;
+            border: 1px solid #ffb3b3;
+            color: #cc0000;
+        }
+        .info {
+            background: #f9f9f9;
+            border: 1px solid #d9d9d9;
+            color: #666;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .config-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .config-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #409eff;
+        }
+        .chat-messages {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .user-message {
+            background: #409eff;
+            color: white;
+            text-align: right;
+        }
+        .ai-message {
+            background: #67c23a;
+            color: white;
+        }
+        .error-message {
+            background: #f56c6c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI聊天功能修复测试</h1>
+        <p>测试修复后的AI聊天功能是否正常工作。</p>
+
+        <!-- 1. 获取AI配置 -->
+        <div class="test-section">
+            <h3>1. 获取AI配置</h3>
+            <p>首先获取可用的AI配置列表</p>
+            <button onclick="fetchConfigs()">获取配置列表</button>
+            <div id="configResult" class="result info">点击按钮开始测试...</div>
+            <div id="configList" class="config-list" style="display: none;"></div>
+        </div>
+
+        <!-- 2. 测试聊天功能 -->
+        <div class="test-section">
+            <h3>2. 测试AI聊天</h3>
+            <p>使用选定的配置测试聊天功能</p>
+            <label>选择配置ID:</label>
+            <input type="number" id="configId" placeholder="输入配置ID" value="">
+            <label>测试消息:</label>
+            <textarea id="testMessage" placeholder="输入测试消息">你好，请介绍一下你自己</textarea>
+            <button onclick="testChat()">发送聊天消息</button>
+            <div id="chatResult" class="result info">选择配置后点击按钮测试...</div>
+            
+            <!-- 聊天记录 -->
+            <div id="chatMessages" class="chat-messages" style="display: none;"></div>
+        </div>
+
+        <!-- 3. 连续对话测试 -->
+        <div class="test-section">
+            <h3>3. 连续对话测试</h3>
+            <p>测试多轮对话功能</p>
+            <input type="text" id="quickMessage" placeholder="输入消息" onkeypress="handleEnter(event)">
+            <button onclick="sendQuickMessage()">发送</button>
+            <button onclick="clearChat()">清空对话</button>
+            <div id="conversationResult" class="result info">输入消息开始对话...</div>
+        </div>
+
+        <!-- 4. 错误处理测试 -->
+        <div class="test-section">
+            <h3>4. 错误处理测试</h3>
+            <p>测试各种错误情况的处理</p>
+            <button onclick="testInvalidConfig()">测试无效配置</button>
+            <button onclick="testEmptyMessage()">测试空消息</button>
+            <button onclick="testLongMessage()">测试长消息</button>
+            <div id="errorResult" class="result info">点击按钮测试错误处理...</div>
+        </div>
+    </div>
+
+    <script>
+        // API配置
+        const API_BASE_URL = 'http://localhost:8080/api/v1';
+        let currentSessionId = null;
+        let selectedConfigId = null;
+        
+        // 获取认证token
+        function getAuthToken() {
+            const authData = localStorage.getItem('auth-store');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return parsed.token;
+                } catch (e) {
+                    console.log('无法解析认证数据');
+                }
+            }
+            return null;
+        }
+
+        // 通用请求函数
+        async function makeRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+            return { response, data };
+        }
+
+        // 1. 获取AI配置
+        async function fetchConfigs() {
+            const resultDiv = document.getElementById('configResult');
+            const listDiv = document.getElementById('configList');
+            
+            resultDiv.textContent = '正在获取AI配置...';
+            resultDiv.className = 'result info';
+            listDiv.style.display = 'none';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config`);
+                
+                if (response.ok) {
+                    let configs = [];
+                    if (data.data && data.data.configs) {
+                        configs = data.data.configs;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        configs = data.data;
+                    } else if (Array.isArray(data)) {
+                        configs = data;
+                    }
+
+                    resultDiv.textContent = `✅ 获取成功！找到 ${configs.length} 个配置`;
+                    resultDiv.className = 'result success';
+
+                    if (configs.length > 0) {
+                        listDiv.innerHTML = configs.map(config => `
+                            <div class="config-item" onclick="selectConfig(${config.id})">
+                                <strong>ID: ${config.id}</strong> - ${config.name}<br>
+                                模型: ${config.model}<br>
+                                提供商: ${config.provider}<br>
+                                状态: ${config.status || 'active'}<br>
+                                优先级: ${config.priority || 5}
+                            </div>
+                        `).join('');
+                        listDiv.style.display = 'block';
+
+                        // 自动选择第一个配置
+                        if (configs[0]) {
+                            selectConfig(configs[0].id);
+                        }
+                    }
+                } else {
+                    resultDiv.textContent = `❌ 获取失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 选择配置
+        function selectConfig(configId) {
+            selectedConfigId = configId;
+            document.getElementById('configId').value = configId;
+            
+            // 高亮选中的配置
+            document.querySelectorAll('.config-item').forEach(item => {
+                item.style.backgroundColor = '#f8f9fa';
+            });
+            event.target.closest('.config-item').style.backgroundColor = '#e3f2fd';
+            
+            console.log('选择配置ID:', configId);
+        }
+
+        // 2. 测试聊天
+        async function testChat() {
+            const resultDiv = document.getElementById('chatResult');
+            const messagesDiv = document.getElementById('chatMessages');
+            const configId = document.getElementById('configId').value;
+            const message = document.getElementById('testMessage').value;
+
+            if (!configId || !message) {
+                resultDiv.textContent = '❌ 请选择配置并输入测试消息';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = '正在发送聊天消息...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: message,
+                        config_id: parseInt(configId),
+                        session_id: currentSessionId
+                    })
+                });
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ 聊天成功！\n会话ID: ${data.data?.id || 'N/A'}`;
+                    resultDiv.className = 'result success';
+                    
+                    // 更新会话ID
+                    if (data.data?.id) {
+                        currentSessionId = data.data.id;
+                    }
+                    
+                    // 显示聊天记录
+                    displayChatMessages(data.data);
+                    messagesDiv.style.display = 'block';
+                } else {
+                    resultDiv.textContent = `❌ 聊天失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 显示聊天消息
+        function displayChatMessages(sessionData) {
+            const messagesDiv = document.getElementById('chatMessages');
+            
+            if (sessionData && sessionData.messages) {
+                const messagesHtml = sessionData.messages.map(msg => {
+                    const className = msg.role === 'user' ? 'user-message' : 'ai-message';
+                    return `<div class="message ${className}">
+                        <strong>${msg.role === 'user' ? '用户' : 'AI'}:</strong> ${msg.content}
+                    </div>`;
+                }).join('');
+                
+                messagesDiv.innerHTML = messagesHtml;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        // 3. 快速消息
+        async function sendQuickMessage() {
+            const messageInput = document.getElementById('quickMessage');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                alert('请输入消息');
+                return;
+            }
+            
+            if (!selectedConfigId) {
+                alert('请先选择AI配置');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('conversationResult');
+            resultDiv.textContent = '发送中...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: message,
+                        config_id: selectedConfigId,
+                        session_id: currentSessionId
+                    })
+                });
+                
+                if (response.ok) {
+                    // 更新会话ID
+                    if (data.data?.id) {
+                        currentSessionId = data.data.id;
+                    }
+                    
+                    // 显示最新消息
+                    displayChatMessages(data.data);
+                    document.getElementById('chatMessages').style.display = 'block';
+                    
+                    resultDiv.textContent = '✅ 消息发送成功';
+                    resultDiv.className = 'result success';
+                    
+                    // 清空输入框
+                    messageInput.value = '';
+                } else {
+                    resultDiv.textContent = `❌ 发送失败: ${data.error || '未知错误'}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 处理回车键
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                sendQuickMessage();
+            }
+        }
+
+        // 清空对话
+        function clearChat() {
+            currentSessionId = null;
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('conversationResult').textContent = '对话已清空，输入消息开始新对话...';
+            document.getElementById('conversationResult').className = 'result info';
+        }
+
+        // 4. 错误处理测试
+        async function testInvalidConfig() {
+            const resultDiv = document.getElementById('errorResult');
+            resultDiv.textContent = '测试无效配置...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: '测试消息',
+                        config_id: 99999, // 无效的配置ID
+                        session_id: null
+                    })
+                });
+                
+                resultDiv.textContent = `测试结果: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testEmptyMessage() {
+            const resultDiv = document.getElementById('errorResult');
+            resultDiv.textContent = '测试空消息...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: '', // 空消息
+                        config_id: selectedConfigId,
+                        session_id: null
+                    })
+                });
+                
+                resultDiv.textContent = `测试结果: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testLongMessage() {
+            const resultDiv = document.getElementById('errorResult');
+            resultDiv.textContent = '测试长消息...';
+            resultDiv.className = 'result info';
+
+            const longMessage = '这是一个很长的测试消息。'.repeat(100); // 重复100次
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: longMessage,
+                        config_id: selectedConfigId,
+                        session_id: null
+                    })
+                });
+                
+                resultDiv.textContent = `测试结果: ${response.status}\n消息长度: ${longMessage.length} 字符\n响应: ${JSON.stringify(data, null, 2)}`;
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动获取配置
+        window.onload = function() {
+            console.log('AI聊天测试页面已加载');
+            console.log('API地址:', API_BASE_URL);
+            console.log('认证Token:', getAuthToken() ? '已找到' : '未找到');
+            
+            // 自动获取配置
+            fetchConfigs();
+        };
+    </script>
+</body>
+</html>

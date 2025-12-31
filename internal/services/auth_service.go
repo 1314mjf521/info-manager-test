@@ -49,11 +49,31 @@ type LoginResponse struct {
 
 // UserInfo 用户信息
 type UserInfo struct {
-	ID       uint     `json:"id"`
-	Username string   `json:"username"`
-	Email    string   `json:"email"`
-	IsActive bool     `json:"is_active"`
-	Roles    []string `json:"roles"`
+	ID          uint                 `json:"id"`
+	Username    string               `json:"username"`
+	Email       string               `json:"email"`
+	IsActive    bool                 `json:"is_active"`
+	Roles       []AuthRoleInfo       `json:"roles"`
+	Permissions []AuthPermissionInfo `json:"permissions"`
+}
+
+// AuthRoleInfo 认证角色信息
+type AuthRoleInfo struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+}
+
+// AuthPermissionInfo 认证权限信息
+type AuthPermissionInfo struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+	Resource    string `json:"resource"`
+	Action      string `json:"action"`
+	Scope       string `json:"scope"`
 }
 
 // JWTClaims JWT声明
@@ -71,9 +91,9 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 
 // LoginWithIP 用户登录（带IP记录）
 func (s *AuthService) LoginWithIP(req *LoginRequest, clientIP string) (*LoginResponse, error) {
-	// 查找用户
+	// 查找用户并预加载角色和权限
 	var user models.User
-	if err := s.db.Preload("Roles").Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
+	if err := s.db.Preload("Roles.Permissions").Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("用户名或密码错误")
 		}
@@ -110,24 +130,7 @@ func (s *AuthService) LoginWithIP(req *LoginRequest, clientIP string) (*LoginRes
 		return nil, fmt.Errorf("生成刷新token失败: %w", err)
 	}
 
-	// 构建响应
-	roles := make([]string, len(user.Roles))
-	for i, role := range user.Roles {
-		roles[i] = role.Name
-	}
-
-	return &LoginResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt,
-		User: UserInfo{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			IsActive: user.IsActive,
-			Roles:    roles,
-		},
-	}, nil
+	return s.buildLoginResponse(token, refreshToken, expiresAt, &user)
 }
 
 // Register 用户注册
@@ -181,9 +184,9 @@ func (s *AuthService) RefreshToken(tokenString string) (*LoginResponse, error) {
 		return nil, fmt.Errorf("无效的刷新token: %w", err)
 	}
 
-	// 查找用户
+	// 查找用户并预加载角色和权限
 	var user models.User
-	if err := s.db.Preload("Roles").First(&user, claims.UserID).Error; err != nil {
+	if err := s.db.Preload("Roles.Permissions").First(&user, claims.UserID).Error; err != nil {
 		return nil, fmt.Errorf("用户不存在")
 	}
 
@@ -204,10 +207,42 @@ func (s *AuthService) RefreshToken(tokenString string) (*LoginResponse, error) {
 		return nil, fmt.Errorf("生成刷新token失败: %w", err)
 	}
 
-	// 构建响应
-	roles := make([]string, len(user.Roles))
+	return s.buildLoginResponse(token, refreshToken, expiresAt, &user)
+}
+
+// buildLoginResponse 构建登录响应
+func (s *AuthService) buildLoginResponse(token, refreshToken string, expiresAt time.Time, user *models.User) (*LoginResponse, error) {
+	// 构建角色信息
+	roles := make([]AuthRoleInfo, len(user.Roles))
 	for i, role := range user.Roles {
-		roles[i] = role.Name
+		roles[i] = AuthRoleInfo{
+			ID:          role.ID,
+			Name:        role.Name,
+			DisplayName: role.DisplayName,
+			Description: role.Description,
+		}
+	}
+
+	// 收集所有权限（去重）
+	permissionMap := make(map[uint]models.Permission)
+	for _, role := range user.Roles {
+		for _, permission := range role.Permissions {
+			permissionMap[permission.ID] = permission
+		}
+	}
+
+	// 构建权限信息
+	permissions := make([]AuthPermissionInfo, 0, len(permissionMap))
+	for _, permission := range permissionMap {
+		permissions = append(permissions, AuthPermissionInfo{
+			ID:          permission.ID,
+			Name:        permission.Name,
+			DisplayName: permission.DisplayName,
+			Description: permission.Description,
+			Resource:    permission.Resource,
+			Action:      permission.Action,
+			Scope:       permission.Scope,
+		})
 	}
 
 	return &LoginResponse{
@@ -215,11 +250,12 @@ func (s *AuthService) RefreshToken(tokenString string) (*LoginResponse, error) {
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
 		User: UserInfo{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			IsActive: user.IsActive,
-			Roles:    roles,
+			ID:          user.ID,
+			Username:    user.Username,
+			Email:       user.Email,
+			IsActive:    user.IsActive,
+			Roles:       roles,
+			Permissions: permissions,
 		},
 	}, nil
 }

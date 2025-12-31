@@ -270,10 +270,12 @@ import { http } from '@/utils/request'
 import { useAuthStore } from '@/stores/auth'
 import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
 import DynamicForm from '@/components/DynamicForm.vue'
+import { useEventBus } from '@/utils/eventBus'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const { emit } = useEventBus()
 
 // 响应式数据
 const formRef = ref()
@@ -542,9 +544,13 @@ const handleSubmit = async () => {
     if (isEdit.value) {
       response = await http.put(API_ENDPOINTS.RECORDS.UPDATE(parseInt(recordId.value)), submitData)
       ElMessage.success('记录更新成功')
+      // 触发记录更新事件
+      emit('record:updated')
     } else {
       response = await http.post(API_ENDPOINTS.RECORDS.CREATE, submitData)
       ElMessage.success('记录创建成功')
+      // 触发记录创建事件
+      emit('record:created')
     }
     
     console.log('提交响应:', response)

@@ -13,37 +13,47 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 计算属性
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const userRoles = computed(() => user.value?.roles || [])
+  const userRoles = computed(() => user.value?.roles?.map(role => role.name) || [])
   const userPermissions = computed(() => {
-    // 简化权限检查，基于角色名称
-    const permissions: string[] = []
-    const roles = userRoles.value
-    
-    // 根据角色分配基础权限
-    if (roles.includes('admin')) {
-      permissions.push('system:admin:all', 'users:read:all', 'users:write:all', 'records:read:all', 'records:write:all', 'files:read:all', 'files:write:all')
+    // 从用户对象中获取实际权限
+    if (!user.value || !user.value.permissions) {
+      return []
     }
-    if (roles.includes('user')) {
-      permissions.push('records:read:own', 'records:write:own', 'files:read:own', 'files:write:own')
-    }
-    
-    return permissions
+    return user.value.permissions.map(p => p.name) || []
   })
 
   // 检查权限
   const hasPermission = (resource: string, action: string, scope: string = 'all'): boolean => {
     if (!isAuthenticated.value) return false
     
-    const permissionKey = `${resource}:${action}:${scope}`
-    const ownPermissionKey = `${resource}:${action}:own`
+    // 管理员拥有所有权限
+    if (hasRole('系统管理员')) {
+      return true
+    }
     
-    return userPermissions.value.includes(permissionKey) || 
-           userPermissions.value.includes(ownPermissionKey)
+    // 检查具体权限
+    const permissions = userPermissions.value
+    
+    // 支持多种权限格式检查
+    const permissionPatterns = [
+      `${resource}:${action}:${scope}`,
+      `${resource}:${action}`,
+      `${resource}:manage`,
+      resource
+    ]
+    
+    // 如果scope是all，也检查own权限
+    if (scope === 'all') {
+      permissionPatterns.push(`${resource}:${action}:own`)
+    }
+    
+    return permissionPatterns.some(pattern => permissions.includes(pattern))
   }
 
   // 检查角色
   const hasRole = (roleName: string): boolean => {
-    return userRoles.value.includes(roleName)
+    if (!user.value || !user.value.roles) return false
+    return user.value.roles.some(role => role.name === roleName || role.display_name === roleName)
   }
 
   // 登录

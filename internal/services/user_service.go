@@ -37,17 +37,24 @@ func (s *UserService) GetProfile(userID uint) (*UserInfo, error) {
 		return nil, fmt.Errorf("用户不存在")
 	}
 
-	roles := make([]string, len(user.Roles))
+	// 构建角色信息
+	authRoles := make([]AuthRoleInfo, len(user.Roles))
 	for i, role := range user.Roles {
-		roles[i] = role.Name
+		authRoles[i] = AuthRoleInfo{
+			ID:          role.ID,
+			Name:        role.Name,
+			DisplayName: role.DisplayName,
+			Description: role.Description,
+		}
 	}
 
 	return &UserInfo{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		IsActive: user.IsActive,
-		Roles:    roles,
+		ID:          user.ID,
+		Username:    user.Username,
+		Email:       user.Email,
+		IsActive:    user.IsActive,
+		Roles:       authRoles,
+		Permissions: []AuthPermissionInfo{}, // 空权限列表，如需要可以后续加载
 	}, nil
 }
 

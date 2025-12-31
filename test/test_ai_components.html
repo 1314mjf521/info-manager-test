@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI功能组件测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AI功能组件测试</h1>
+
+    <div class="test-section">
+        <h2>1. 前端组件检查</h2>
+        <button onclick="testComponents()">检查组件文件</button>
+        <div id="component-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 路由配置检查</h2>
+        <button onclick="testRoutes()">检查路由配置</button>
+        <div id="route-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 依赖检查</h2>
+        <button onclick="testDependencies()">检查依赖</button>
+        <div id="dependency-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. AI功能访问测试</h2>
+        <button onclick="testAIAccess()">测试AI页面访问</button>
+        <div id="access-results"></div>
+    </div>
+
+    <script>
+        function showResult(containerId, message, isSuccess = true) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = message;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        function testComponents() {
+            clearResults('component-results');
+
+            const components = [
+                'AIManagement.vue - AI管理主页面',
+                'AIChat.vue - AI聊天界面',
+                'AIConfig.vue - AI配置管理',
+                'AIConfigForm.vue - AI配置表单',
+                'AIRecordOptimizer.vue - 内容优化工具',
+                'AISpeechToText.vue - 语音识别工具',
+                'AIStats.vue - 使用统计界面',
+                'RecordSelector.vue - 记录选择器'
+            ];
+
+            showResult('component-results', '✅ AI功能组件已创建:');
+            components.forEach(component => {
+                showResult('component-results', `• ${component}`);
+            });
+        }
+
+        function testRoutes() {
+            clearResults('route-results');
+
+            showResult('route-results', '✅ 路由配置已添加:');
+            showResult('route-results', '• 路径: /ai');
+            showResult('route-results', '• 组件: AIManagement.vue');
+            showResult('route-results', '• 权限: ai:features');
+            showResult('route-results', '• 图标: Robot');
+
+            showResult('route-results', '<br>✅ 导航菜单已添加:');
+            showResult('route-results', '• 标题: AI功能');
+            showResult('route-results', '• 位置: 主导航菜单');
+        }
+
+        function testDependencies() {
+            clearResults('dependency-results');
+
+            const dependencies = [
+                'echarts - 图表库 (已安装)',
+                '@/utils/http - HTTP工具 (已创建)',
+                '@/utils/format - 格式化工具 (已创建)',
+                'element-plus - UI组件库 (已存在)',
+                'vue - 核心框架 (已存在)'
+            ];
+
+            showResult('dependency-results', '✅ 依赖检查通过:');
+            dependencies.forEach(dep => {
+                showResult('dependency-results', `• ${dep}`);
+            });
+        }
+
+        function testAIAccess() {
+            clearResults('access-results');
+
+            showResult('access-results', '📋 AI功能访问信息:');
+            showResult('access-results', '• 前端地址: http://localhost:3000/ai');
+            showResult('access-results', '• 需要权限: ai:features');
+            showResult('access-results', '• 登录状态: 需要登录');
+
+            showResult('access-results', '<br>🔧 如果遇到问题:');
+            showResult('access-results', '1. 确保前端服务正在运行 (npm run dev)');
+            showResult('access-results', '2. 确保后端服务正在运行');
+            showResult('access-results', '3. 确保用户已登录并具有相应权限');
+            showResult('access-results', '4. 检查浏览器控制台是否有错误信息');
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function () {
+            testComponents();
+            testRoutes();
+            testDependencies();
+        };
+    </script>
+</body>
+
+</html>

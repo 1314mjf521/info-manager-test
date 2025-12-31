@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>权限树测试</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>权限树数据测试</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testPermissionTree() {
+            try {
+                // 登录获取token
+                const loginResponse = await axios.post('http://localhost:8080/api/v1/auth/login', {
+                    username: 'admin',
+                    password: 'admin123'
+                });
+                
+                const token = loginResponse.data.data.token;
+                console.log('登录成功，token:', token.substring(0, 20) + '...');
+                
+                // 获取权限树
+                const treeResponse = await axios.get('http://localhost:8080/api/v1/permissions/tree', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('权限树响应:', treeResponse.data);
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <h2>权限树数据</h2>
+                    <p>根节点数量: ${treeResponse.data.data.length}</p>
+                    <pre>${JSON.stringify(treeResponse.data.data, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('测试失败:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">测试失败: ${error.message}</p>`;
+            }
+        }
+        
+        testPermissionTree();
+    </script>
+</body>
+</html>

@@ -338,7 +338,11 @@ func (s *ExportService) processExportTask(taskID uint, req *ExportRequest) {
 		Format:    req.Format,
 		ExpiresAt: &expiresAt,
 	}
-	s.db.Create(exportFile)
+	if err := s.db.Create(exportFile).Error; err != nil {
+		fmt.Printf("DEBUG: 创建导出文件记录失败: taskID=%d, error=%v\n", taskID, err)
+	} else {
+		fmt.Printf("DEBUG: 成功创建导出文件记录: taskID=%d, fileID=%d, fileName=%s\n", taskID, exportFile.ID, fileName)
+	}
 }
 
 // updateTaskError 更新任务错误状态
@@ -351,30 +355,211 @@ func (s *ExportService) updateTaskError(taskID uint, errorMsg string) {
 
 // getRecordsForExport 获取要导出的记录
 func (s *ExportService) getRecordsForExport(req *ExportRequest) ([]map[string]interface{}, error) {
-	// 这里简化处理，实际应该根据过滤条件获取记录
-	// 模拟返回一些测试数据
-	records := []map[string]interface{}{
-		{
-			"id":         1,
-			"title":      "测试记录1",
-			"content":    "这是第一条测试记录",
-			"created_at": time.Now().Format("2006-01-02 15:04:05"),
-		},
-		{
-			"id":         2,
-			"title":      "测试记录2",
-			"content":    "这是第二条测试记录",
-			"created_at": time.Now().Format("2006-01-02 15:04:05"),
-		},
-		{
-			"id":         3,
-			"title":      "测试记录3",
-			"content":    "这是第三条测试记录",
-			"created_at": time.Now().Format("2006-01-02 15:04:05"),
-		},
+	// 从配置中获取数据类型
+	dataType := "records" // 默认导出记录
+	if req.Config != nil {
+		if dt, ok := req.Config["data_type"].(string); ok {
+			dataType = dt
+		}
 	}
 
-	return records, nil
+	switch dataType {
+	case "records":
+		return s.getRecordsData(req)
+	case "files":
+		return s.getFilesData(req)
+	case "users":
+		return s.getUsersData(req)
+	case "logs":
+		return s.getLogsData(req)
+	default:
+		return nil, fmt.Errorf("不支持的数据类型: %s", dataType)
+	}
+}
+
+// getRecordsData 获取记录数据
+func (s *ExportService) getRecordsData(req *ExportRequest) ([]map[string]interface{}, error) {
+	var records []models.Record
+	query := s.db.Preload("Creator")
+
+	// 应用时间范围过滤
+	if startTime, ok := req.Filters["start_time"]; ok && startTime != "" {
+		query = query.Where("created_at >= ?", startTime)
+	}
+	if endTime, ok := req.Filters["end_time"]; ok && endTime != "" {
+		query = query.Where("created_at <= ?", endTime)
+	}
+
+	// 应用其他过滤条件
+	if recordType, ok := req.Filters["type"]; ok && recordType != "" {
+		query = query.Where("type = ?", recordType)
+	}
+	if status, ok := req.Filters["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if err := query.Find(&records).Error; err != nil {
+		return nil, fmt.Errorf("查询记录失败: %v", err)
+	}
+
+	// 转换为map格式
+	result := make([]map[string]interface{}, len(records))
+	for i, record := range records {
+		creatorName := "未知用户"
+		if record.Creator.ID != 0 {
+			if record.Creator.DisplayName != "" {
+				creatorName = record.Creator.DisplayName
+			} else {
+				creatorName = record.Creator.Username
+			}
+		}
+
+		result[i] = map[string]interface{}{
+			"id":         record.ID,
+			"type":       record.Type,
+			"title":      record.Title,
+			"content":    record.Content,
+			"tags":       strings.Join(record.Tags, ", "),
+			"status":     record.Status,
+			"version":    record.Version,
+			"creator":    creatorName,
+			"created_at": record.CreatedAt.Format("2006-01-02 15:04:05"),
+			"updated_at": record.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return result, nil
+}
+
+// getFilesData 获取文件数据
+func (s *ExportService) getFilesData(req *ExportRequest) ([]map[string]interface{}, error) {
+	var files []models.File
+	query := s.db.Preload("Uploader")
+
+	// 应用时间范围过滤
+	if startTime, ok := req.Filters["start_time"]; ok && startTime != "" {
+		query = query.Where("created_at >= ?", startTime)
+	}
+	if endTime, ok := req.Filters["end_time"]; ok && endTime != "" {
+		query = query.Where("created_at <= ?", endTime)
+	}
+
+	if err := query.Find(&files).Error; err != nil {
+		return nil, fmt.Errorf("查询文件失败: %v", err)
+	}
+
+	// 转换为map格式
+	result := make([]map[string]interface{}, len(files))
+	for i, file := range files {
+		uploaderName := "未知用户"
+		if file.Uploader.ID != 0 {
+			if file.Uploader.DisplayName != "" {
+				uploaderName = file.Uploader.DisplayName
+			} else {
+				uploaderName = file.Uploader.Username
+			}
+		}
+
+		result[i] = map[string]interface{}{
+			"id":           file.ID,
+			"filename":     file.Filename,
+			"original_name": file.OriginalName,
+			"size":         file.Size,
+			"mime_type":    file.MimeType,
+			"path":         file.Path,
+			"uploader":     uploaderName,
+			"created_at":   file.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return result, nil
+}
+
+// getUsersData 获取用户数据
+func (s *ExportService) getUsersData(req *ExportRequest) ([]map[string]interface{}, error) {
+	var users []models.User
+	query := s.db.Preload("Roles")
+
+	// 应用时间范围过滤
+	if startTime, ok := req.Filters["start_time"]; ok && startTime != "" {
+		query = query.Where("created_at >= ?", startTime)
+	}
+	if endTime, ok := req.Filters["end_time"]; ok && endTime != "" {
+		query = query.Where("created_at <= ?", endTime)
+	}
+
+	if err := query.Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("查询用户失败: %v", err)
+	}
+
+	// 转换为map格式
+	result := make([]map[string]interface{}, len(users))
+	for i, user := range users {
+		roleNames := make([]string, len(user.Roles))
+		for j, role := range user.Roles {
+			roleNames[j] = role.DisplayName
+		}
+
+		result[i] = map[string]interface{}{
+			"id":           user.ID,
+			"username":     user.Username,
+			"email":        user.Email,
+			"display_name": user.DisplayName,
+			"is_active":    user.IsActive,
+			"roles":        strings.Join(roleNames, ", "),
+			"last_login":   user.LastLogin,
+			"created_at":   user.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return result, nil
+}
+
+// getLogsData 获取日志数据
+func (s *ExportService) getLogsData(req *ExportRequest) ([]map[string]interface{}, error) {
+	var logs []models.SystemLog
+	query := s.db.Preload("User")
+
+	// 应用时间范围过滤
+	if startTime, ok := req.Filters["start_time"]; ok && startTime != "" {
+		query = query.Where("created_at >= ?", startTime)
+	}
+	if endTime, ok := req.Filters["end_time"]; ok && endTime != "" {
+		query = query.Where("created_at <= ?", endTime)
+	}
+
+	// 应用日志级别过滤
+	if level, ok := req.Filters["level"]; ok && level != "" {
+		query = query.Where("level = ?", level)
+	}
+
+	if err := query.Order("created_at DESC").Limit(1000).Find(&logs).Error; err != nil {
+		return nil, fmt.Errorf("查询日志失败: %v", err)
+	}
+
+	// 转换为map格式
+	result := make([]map[string]interface{}, len(logs))
+	for i, log := range logs {
+		userName := "系统"
+		if log.User.ID != 0 {
+			userName = log.User.Username
+		}
+
+		result[i] = map[string]interface{}{
+			"id":         log.ID,
+			"level":      log.Level,
+			"category":   log.Category,
+			"message":    log.Message,
+			"context":    log.Context,
+			"user":       userName,
+			"ip_address": log.IPAddress,
+			"user_agent": log.UserAgent,
+			"request_id": log.RequestID,
+			"created_at": log.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return result, nil
 }
 
 // exportData 导出数据到文件
@@ -1096,7 +1281,7 @@ func (s *ExportService) GetFiles(page, pageSize int, userID uint, hasAllPermissi
 	}, nil
 }
 
-// DownloadFile 下载导出文件
+// DownloadFile 下载导出文件（通过文件ID）
 func (s *ExportService) DownloadFile(fileID, userID uint, hasAllPermission bool) (*models.ExportFile, error) {
 	var file models.ExportFile
 
@@ -1110,6 +1295,44 @@ func (s *ExportService) DownloadFile(fileID, userID uint, hasAllPermission bool)
 
 	if err := query.First(&file, fileID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("文件不存在或无权访问")
+		}
+		return nil, fmt.Errorf("获取文件失败: %v", err)
+	}
+
+	// 检查文件是否过期
+	if file.ExpiresAt != nil && time.Now().After(*file.ExpiresAt) {
+		return nil, fmt.Errorf("文件已过期")
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(file.FilePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("文件不存在")
+	}
+
+	// 增加下载次数
+	s.db.Model(&file).Update("download_count", gorm.Expr("download_count + 1"))
+
+	return &file, nil
+}
+
+// DownloadFileByTaskID 通过任务ID下载导出文件
+func (s *ExportService) DownloadFileByTaskID(taskID, userID uint, hasAllPermission bool) (*models.ExportFile, error) {
+	var file models.ExportFile
+
+	query := s.db.Preload("Task").
+		Where("export_files.task_id = ?", taskID)
+
+	// 权限控制
+	if !hasAllPermission {
+		query = query.Joins("JOIN export_tasks ON export_files.task_id = export_tasks.id").
+			Where("export_tasks.created_by = ?", userID)
+	}
+
+	if err := query.First(&file).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			// 添加调试信息
+			fmt.Printf("DEBUG: 未找到taskID=%d的导出文件记录, userID=%d, hasAllPermission=%v\n", taskID, userID, hasAllPermission)
 			return nil, fmt.Errorf("文件不存在或无权访问")
 		}
 		return nil, fmt.Errorf("获取文件失败: %v", err)

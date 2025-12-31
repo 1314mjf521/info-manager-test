@@ -26,14 +26,22 @@ func NewAIHandler(aiService *services.AIService) *AIHandler {
 func (h *AIHandler) CreateConfig(c *gin.Context) {
 	var req services.AIConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// 记录详细的验证错误
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "请求数据验证失败: " + err.Error(),
+			"details": "请检查必填字段: name, provider, api_key, model",
+		})
 		return
 	}
 
 	userID := getUserID(c)
 	config, err := h.aiService.CreateConfig(&req, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 记录详细的创建错误
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "创建AI配置失败: " + err.Error(),
+			"request_data": req,
+		})
 		return
 	}
 
@@ -275,6 +283,27 @@ func (h *AIHandler) GetUsageStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "获取使用统计成功",
 		"data":    stats,
+	})
+}
+
+// TestConnection 测试连接
+func (h *AIHandler) TestConnection(c *gin.Context) {
+	var req services.TestConnectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := getUserID(c)
+	result, err := h.aiService.TestConnection(&req, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "连接测试完成",
+		"data":    result,
 	})
 }
 

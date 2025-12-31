@@ -23,15 +23,18 @@ database:
     path: "data/info_system.db"
     # SQLite优化配置，解决数据库锁问题
     journal_mode: "WAL"          # 启用WAL模式提高并发性
-    busy_timeout: 30000          # 忙等待超时30秒
-    cache_size: -64000           # 缓存大小64MB
+    busy_timeout: 60000          # 忙等待超时60秒
+    cache_size: -128000          # 缓存大小128MB
     page_size: 4096              # 页面大小4KB
     synchronous: "NORMAL"        # 同步模式
     temp_store: "MEMORY"         # 临时存储在内存
     max_open_conns: 1            # SQLite推荐单连接
     max_idle_conns: 1            # 最大空闲连接
-    conn_max_lifetime: "1h"      # 连接最大生命周期
-    conn_max_idle_time: "30m"    # 连接最大空闲时间
+    conn_max_lifetime: "2h"      # 连接最大生命周期
+    conn_max_idle_time: "1h"     # 连接最大空闲时间
+    # 新增超时配置
+    read_timeout: "60s"          # 读取超时
+    write_timeout: "60s"         # 写入超时
 
 redis:
   host: "localhost"

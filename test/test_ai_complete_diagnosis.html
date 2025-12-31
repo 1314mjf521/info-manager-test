@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI功能完整诊断</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #409eff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+        button:disabled {
+            background: #c0c4cc;
+            cursor: not-allowed;
+        }
+        button.success {
+            background: #67c23a;
+        }
+        button.warning {
+            background: #e6a23c;
+        }
+        button.danger {
+            background: #f56c6c;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #f0f9ff;
+            border: 1px solid #b3d8ff;
+            color: #0066cc;
+        }
+        .error {
+            background: #fff2f0;
+            border: 1px solid #ffb3b3;
+            color: #cc0000;
+        }
+        .info {
+            background: #f9f9f9;
+            border: 1px solid #d9d9d9;
+            color: #666;
+        }
+        .warning {
+            background: #fffbf0;
+            border: 1px solid #f0d000;
+            color: #b8860b;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #67c23a; }
+        .status-error { background: #f56c6c; }
+        .status-warning { background: #e6a23c; }
+        .status-info { background: #409eff; }
+        
+        .step-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #409eff, #67c23a);
+            transition: width 0.3s ease;
+        }
+        
+        #loginSection {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        #loginSection label {
+            color: white;
+        }
+        
+        #loginSection input, #loginSection textarea {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        #loginSection .result {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        #loginSection .result.success {
+            background: rgba(103, 194, 58, 0.2);
+            border-color: rgba(103, 194, 58, 0.5);
+        }
+        
+        #loginSection .result.error {
+            background: rgba(245, 108, 108, 0.2);
+            border-color: rgba(245, 108, 108, 0.5);
+        }
+        
+        .login-tips {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 AI功能完整诊断工具</h1>
+        <p>全面诊断AI配置保存、获取和聊天功能的问题。</p>
+        
+        <!-- 登录状态和控制 -->
+        <div class="test-section" id="loginSection">
+            <h3><span class="status-indicator status-warning" id="loginStatus"></span>用户登录状态</h3>
+            <div id="loginInfo" class="result info">检查登录状态...</div>
+            
+            <!-- 登录表单 -->
+            <div id="loginForm" style="display: none;">
+                <div class="form-row">
+                    <div>
+                        <label>用户名:</label>
+                        <input type="text" id="username" value="admin" placeholder="输入用户名">
+                    </div>
+                    <div>
+                        <label>密码:</label>
+                        <input type="password" id="password" value="admin123" placeholder="输入密码">
+                    </div>
+                </div>
+                <button onclick="performLogin()" id="loginBtn">登录</button>
+                <button onclick="showTokenInput()" id="tokenBtn">使用Token</button>
+            </div>
+            
+            <!-- Token输入 -->
+            <div id="tokenForm" style="display: none;">
+                <label>直接输入Token:</label>
+                <textarea id="tokenInput" rows="3" placeholder="粘贴您的JWT Token"></textarea>
+                <button onclick="setToken()" id="setTokenBtn">设置Token</button>
+            </div>
+            
+            <button onclick="logout()" id="logoutBtn" style="display: none;" class="danger">退出登录</button>
+            
+            <div class="login-tips">
+                💡 <strong>使用提示:</strong><br>
+                • 默认管理员账号: admin / admin123<br>
+                • 如果您已在系统中登录，可以从浏览器开发者工具的localStorage中复制token<br>
+                • Token格式通常以 "eyJ" 开头的长字符串
+            </div>
+        </div>
+        
+        <!-- 诊断进度 -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        <div id="progressText">请先登录系统...</div>
+    </div>
+
+    <div class="step-container">
+        <!-- 左侧：系统检查 -->
+        <div class="container">
+            <h2>🔍 系统状态检查</h2>
+            
+            <!-- 1. 连接测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status1"></span>1. 后端连接测试</h3>
+                <button onclick="testConnection()" id="btn1">测试连接</button>
+                <div id="result1" class="result info">等待测试...</div>
+            </div>
+
+            <!-- 2. 认证测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status2"></span>2. 用户认证测试</h3>
+                <button onclick="testAuth()" id="btn2">测试认证</button>
+                <div id="result2" class="result info">等待测试...</div>
+            </div>
+
+            <!-- 3. 权限测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status3"></span>3. AI权限测试</h3>
+                <button onclick="testPermissions()" id="btn3">测试权限</button>
+                <div id="result3" class="result info">等待测试...</div>
+            </div>
+
+            <!-- 4. 数据库状态 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status4"></span>4. 数据库状态检查</h3>
+                <button onclick="checkDatabase()" id="btn4">检查数据库</button>
+                <div id="result4" class="result info">等待检查...</div>
+            </div>
+        </div>
+
+        <!-- 右侧：功能测试 -->
+        <div class="container">
+            <h2>⚙️ 功能测试</h2>
+            
+            <!-- 5. 配置保存测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status5"></span>5. 配置保存测试</h3>
+                <div class="form-row">
+                    <div>
+                        <label>配置名称:</label>
+                        <input type="text" id="testConfigName" value="诊断测试配置" placeholder="输入配置名称">
+                    </div>
+                    <div>
+                        <label>服务提供商:</label>
+                        <select id="testProvider" onchange="handleProviderChange()">
+                            <option value="openai">OpenAI</option>
+                            <option value="azure">Azure OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="custom">自定义/本地模型</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div>
+                        <label>模型:</label>
+                        <input type="text" id="testModel" value="gpt-3.5-turbo" placeholder="输入模型名称">
+                    </div>
+                    <div>
+                        <label>API密钥:</label>
+                        <input type="password" id="testApiKey" placeholder="输入测试API密钥">
+                    </div>
+                </div>
+                
+                <label>API端点 (本地/自定义模型必填):</label>
+                <input type="text" id="testApiEndpoint" placeholder="如: http://localhost:8000/v1 或 https://your-api.com/v1">
+                
+                <div class="form-row">
+                    <div>
+                        <label>最大Token数:</label>
+                        <input type="number" id="testMaxTokens" value="4096" min="1" max="32000">
+                    </div>
+                    <div>
+                        <label>温度参数:</label>
+                        <input type="number" id="testTemperature" value="0.7" min="0" max="2" step="0.1">
+                    </div>
+                </div>
+                <button onclick="testConfigSave()" id="btn5">测试保存配置</button>
+                <div id="result5" class="result info">填写信息后点击测试...</div>
+            </div>
+
+            <!-- 6. 配置获取测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status6"></span>6. 配置获取测试</h3>
+                <button onclick="testConfigFetch()" id="btn6">获取配置列表</button>
+                <button onclick="testConfigFetchWithParams()" id="btn6b">带参数获取</button>
+                <div id="result6" class="result info">等待测试...</div>
+            </div>
+
+            <!-- 7. 聊天功能测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status7"></span>7. 聊天功能测试</h3>
+                <input type="text" id="testMessage" value="你好，这是一个测试消息" placeholder="输入测试消息">
+                <button onclick="testChat()" id="btn7">测试聊天</button>
+                <div id="result7" class="result info">需要先有可用配置...</div>
+            </div>
+
+            <!-- 8. 完整流程测试 -->
+            <div class="test-section">
+                <h3><span class="status-indicator status-info" id="status8"></span>8. 完整流程测试</h3>
+                <button onclick="runCompleteTest()" id="btn8" class="success">运行完整测试</button>
+                <button onclick="runAutoFix()" id="btn8b" class="warning">自动修复</button>
+                <div id="result8" class="result info">点击运行完整的端到端测试...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修复建议 -->
+    <div class="container">
+        <h2>🛠️ 修复建议</h2>
+        <div id="fixSuggestions" class="result info">
+            运行诊断后将显示具体的修复建议...
+        </div>
+    </div>
+
+    <script>
+        // API配置
+        const API_BASE_URL = 'http://localhost:8080/api/v1';
+        let testResults = {};
+        let currentStep = 0;
+        let totalSteps = 8;
+        
+        // 获取认证token
+        function getAuthToken() {
+            // 优先从诊断工具的存储获取
+            let token = localStorage.getItem('diagnosis-token');
+            if (token) {
+                return token;
+            }
+            
+            // 尝试从应用的存储获取
+            const authData = localStorage.getItem('auth-store');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return parsed.token;
+                } catch (e) {
+                    console.log('无法解析认证数据');
+                }
+            }
+            return null;
+        }
+
+        // 设置认证token
+        function setAuthToken(token) {
+            localStorage.setItem('diagnosis-token', token);
+            updateLoginStatus();
+        }
+
+        // 清除认证token
+        function clearAuthToken() {
+            localStorage.removeItem('diagnosis-token');
+            updateLoginStatus();
+        }
+
+        // 更新登录状态显示
+        function updateLoginStatus() {
+            const token = getAuthToken();
+            const loginInfo = document.getElementById('loginInfo');
+            const loginForm = document.getElementById('loginForm');
+            const tokenForm = document.getElementById('tokenForm');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginStatus = document.getElementById('loginStatus');
+            const progressText = document.getElementById('progressText');
+
+            if (token) {
+                loginStatus.className = 'status-indicator status-success';
+                loginInfo.textContent = `✅ 已登录\nToken: ${token.substring(0, 30)}...\n状态: 可以开始诊断`;
+                loginInfo.className = 'result success';
+                loginForm.style.display = 'none';
+                tokenForm.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                progressText.textContent = '已登录，可以开始诊断...';
+            } else {
+                loginStatus.className = 'status-indicator status-warning';
+                loginInfo.textContent = '⚠️ 未登录\n请先登录系统或输入有效的Token';
+                loginInfo.className = 'result warning';
+                loginForm.style.display = 'block';
+                tokenForm.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                progressText.textContent = '请先登录系统...';
+            }
+        }
+
+        // 执行登录
+        async function performLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginInfo = document.getElementById('loginInfo');
+
+            if (!username || !password) {
+                loginInfo.textContent = '❌ 请输入用户名和密码';
+                loginInfo.className = 'result error';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginInfo.textContent = '正在登录...';
+            loginInfo.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                if (response.ok && data.data && data.data.token) {
+                    setAuthToken(data.data.token);
+                    loginInfo.textContent = `✅ 登录成功！\n用户: ${data.data.user?.username || username}\nToken已保存`;
+                    loginInfo.className = 'result success';
+                } else {
+                    loginInfo.textContent = `❌ 登录失败\n错误: ${data.error || data.message || '未知错误'}`;
+                    loginInfo.className = 'result error';
+                }
+            } catch (error) {
+                loginInfo.textContent = `❌ 登录请求失败: ${error.message}`;
+                loginInfo.className = 'result error';
+            } finally {
+                loginBtn.disabled = false;
+            }
+        }
+
+        // 显示Token输入
+        function showTokenInput() {
+            const loginForm = document.getElementById('loginForm');
+            const tokenForm = document.getElementById('tokenForm');
+            
+            loginForm.style.display = 'none';
+            tokenForm.style.display = 'block';
+        }
+
+        // 设置Token
+        function setToken() {
+            const tokenInput = document.getElementById('tokenInput');
+            const token = tokenInput.value.trim();
+            const loginInfo = document.getElementById('loginInfo');
+
+            if (!token) {
+                loginInfo.textContent = '❌ 请输入有效的Token';
+                loginInfo.className = 'result error';
+                return;
+            }
+
+            setAuthToken(token);
+            loginInfo.textContent = `✅ Token已设置\n${token.substring(0, 50)}...`;
+            loginInfo.className = 'result success';
+            tokenInput.value = '';
+        }
+
+        // 退出登录
+        function logout() {
+            clearAuthToken();
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('tokenInput').value = '';
+            
+            // 重置所有测试状态
+            currentStep = 0;
+            testResults = {};
+            document.getElementById('progressBar').style.width = '0%';
+            
+            // 重置所有状态指示器
+            for (let i = 1; i <= 8; i++) {
+                updateStatus(i, 'info');
+                const resultDiv = document.getElementById(`result${i}`);
+                if (resultDiv) {
+                    resultDiv.textContent = '等待测试...';
+                    resultDiv.className = 'result info';
+                }
+            }
+        }
+
+        // 通用请求函数
+        async function makeRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                const text = await response.text();
+                data = { error: 'Invalid JSON response', rawResponse: text };
+            }
+            
+            return { response, data };
+        }
+
+        // 检查是否已登录
+        function checkLoginRequired() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('请先登录系统！');
+                return false;
+            }
+            return true;
+        }
+
+        // 处理提供商变化
+        function handleProviderChange() {
+            const provider = document.getElementById('testProvider').value;
+            const modelInput = document.getElementById('testModel');
+            const endpointInput = document.getElementById('testApiEndpoint');
+            const apiKeyInput = document.getElementById('testApiKey');
+
+            // 根据提供商设置默认值
+            switch (provider) {
+                case 'openai':
+                    modelInput.value = 'gpt-3.5-turbo';
+                    endpointInput.value = '';
+                    endpointInput.placeholder = '使用默认OpenAI端点';
+                    apiKeyInput.placeholder = '输入OpenAI API密钥 (sk-...)';
+                    break;
+                case 'azure':
+                    modelInput.value = 'gpt-35-turbo';
+                    endpointInput.value = '';
+                    endpointInput.placeholder = 'https://your-resource.openai.azure.com';
+                    apiKeyInput.placeholder = '输入Azure OpenAI API密钥';
+                    break;
+                case 'anthropic':
+                    modelInput.value = 'claude-3-sonnet-20240229';
+                    endpointInput.value = '';
+                    endpointInput.placeholder = '使用默认Anthropic端点';
+                    apiKeyInput.placeholder = '输入Anthropic API密钥';
+                    break;
+                case 'custom':
+                    modelInput.value = 'llama-2-7b-chat';
+                    endpointInput.value = 'http://localhost:8000/v1';
+                    endpointInput.placeholder = 'http://localhost:8000/v1 或 https://your-api.com/v1';
+                    apiKeyInput.placeholder = '输入自定义模型API密钥（如果需要）';
+                    break;
+            }
+        }
+
+        // 更新状态指示器
+        function updateStatus(stepId, status) {
+            const indicator = document.getElementById(`status${stepId}`);
+            indicator.className = `status-indicator status-${status}`;
+        }
+
+        // 更新进度
+        function updateProgress() {
+            currentStep++;
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = `诊断进度: ${currentStep}/${totalSteps} (${Math.round(progress)}%)`;
+        }
+
+        // 1. 测试连接
+        async function testConnection() {
+            const resultDiv = document.getElementById('result1');
+            const btn = document.getElementById('btn1');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试后端连接...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/system/health`);
+                
+                if (response.ok) {
+                    testResults.connection = true;
+                    updateStatus(1, 'success');
+                    resultDiv.textContent = `✅ 后端连接成功！\n状态码: ${response.status}\n响应时间: ${Date.now() - performance.now()}ms\n服务器信息: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    testResults.connection = false;
+                    updateStatus(1, 'error');
+                    resultDiv.textContent = `❌ 后端连接失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.connection = false;
+                updateStatus(1, 'error');
+                resultDiv.textContent = `❌ 网络错误: ${error.message}\n请检查后端服务是否启动`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 2. 测试认证
+        async function testAuth() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result2');
+            const btn = document.getElementById('btn2');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试用户认证...';
+            resultDiv.className = 'result info';
+
+            const token = getAuthToken();
+            if (!token) {
+                testResults.auth = false;
+                updateStatus(2, 'error');
+                resultDiv.textContent = '❌ 未找到认证Token\n请先登录系统';
+                resultDiv.className = 'result error';
+                btn.disabled = false;
+                updateProgress();
+                return;
+            }
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/users/profile`);
+                
+                if (response.ok) {
+                    testResults.auth = true;
+                    testResults.user = data.data;
+                    updateStatus(2, 'success');
+                    resultDiv.textContent = `✅ 用户认证成功！\nToken: ${token.substring(0, 20)}...\n用户信息: ${JSON.stringify(data.data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    testResults.auth = false;
+                    updateStatus(2, 'error');
+                    resultDiv.textContent = `❌ 认证失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.auth = false;
+                updateStatus(2, 'error');
+                resultDiv.textContent = `❌ 认证测试错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 3. 测试权限
+        async function testPermissions() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result3');
+            const btn = document.getElementById('btn3');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试AI相关权限...';
+            resultDiv.className = 'result info';
+
+            try {
+                // 测试AI配置权限
+                const { response: configResponse, data: configData } = await makeRequest(`${API_BASE_URL}/ai/config`);
+                
+                if (configResponse.ok) {
+                    testResults.permissions = true;
+                    updateStatus(3, 'success');
+                    resultDiv.textContent = `✅ AI权限验证成功！\n可以访问AI配置接口\n权限状态: 正常`;
+                    resultDiv.className = 'result success';
+                } else if (configResponse.status === 403) {
+                    testResults.permissions = false;
+                    updateStatus(3, 'error');
+                    resultDiv.textContent = `❌ AI权限不足\n状态码: 403\n需要AI相关权限才能使用功能`;
+                    resultDiv.className = 'result error';
+                } else {
+                    testResults.permissions = 'unknown';
+                    updateStatus(3, 'warning');
+                    resultDiv.textContent = `⚠️ 权限状态未知\n状态码: ${configResponse.status}\n响应: ${JSON.stringify(configData, null, 2)}`;
+                    resultDiv.className = 'result warning';
+                }
+            } catch (error) {
+                testResults.permissions = false;
+                updateStatus(3, 'error');
+                resultDiv.textContent = `❌ 权限测试错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 4. 检查数据库
+        async function checkDatabase() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result4');
+            const btn = document.getElementById('btn4');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在检查数据库状态...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config?page=1&page_size=100`);
+                
+                if (response.ok) {
+                    let configs = [];
+                    if (data.data && data.data.configs) {
+                        configs = data.data.configs;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        configs = data.data;
+                    }
+
+                    testResults.database = {
+                        accessible: true,
+                        configCount: configs.length,
+                        configs: configs
+                    };
+
+                    if (configs.length > 0) {
+                        updateStatus(4, 'success');
+                        resultDiv.textContent = `✅ 数据库状态正常！\n找到 ${configs.length} 个AI配置\n\n配置列表:\n${configs.map(config => 
+                            `- ID: ${config.id}, 名称: ${config.name}, 提供商: ${config.provider}, 状态: ${config.status}`
+                        ).join('\n')}`;
+                        resultDiv.className = 'result success';
+                    } else {
+                        updateStatus(4, 'warning');
+                        resultDiv.textContent = `⚠️ 数据库可访问但无配置数据\n配置数量: 0\n这解释了为什么AI功能无法使用`;
+                        resultDiv.className = 'result warning';
+                    }
+                } else {
+                    testResults.database = { accessible: false, error: data };
+                    updateStatus(4, 'error');
+                    resultDiv.textContent = `❌ 数据库访问失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.database = { accessible: false, error: error.message };
+                updateStatus(4, 'error');
+                resultDiv.textContent = `❌ 数据库检查错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 5. 测试配置保存
+        async function testConfigSave() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result5');
+            const btn = document.getElementById('btn5');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试配置保存...';
+            resultDiv.className = 'result info';
+
+            const configData = {
+                name: document.getElementById('testConfigName').value,
+                provider: document.getElementById('testProvider').value,
+                model: document.getElementById('testModel').value,
+                api_key: document.getElementById('testApiKey').value || 'sk-test-key-for-diagnosis-only',
+                api_endpoint: document.getElementById('testApiEndpoint').value || '',
+                config: '',
+                categories: ['chat'],
+                tags: ['test', 'diagnosis'],
+                description: '诊断工具创建的测试配置',
+                priority: 5,
+                is_active: true,
+                is_default: false,
+                max_tokens: parseInt(document.getElementById('testMaxTokens').value) || 4096,
+                temperature: parseFloat(document.getElementById('testTemperature').value) || 0.7,
+                daily_limit: 0,
+                monthly_limit: 0,
+                cost_per_token: 0
+            };
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config`, {
+                    method: 'POST',
+                    body: JSON.stringify(configData)
+                });
+                
+                if (response.ok) {
+                    testResults.configSave = { success: true, configId: data.data?.id };
+                    updateStatus(5, 'success');
+                    resultDiv.textContent = `✅ 配置保存成功！\n配置ID: ${data.data?.id}\n配置名称: ${configData.name}\n\n完整响应:\n${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    testResults.configSave = { success: false, error: data };
+                    updateStatus(5, 'error');
+                    resultDiv.textContent = `❌ 配置保存失败\n状态码: ${response.status}\n错误详情: ${JSON.stringify(data, null, 2)}\n\n发送的数据:\n${JSON.stringify(configData, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.configSave = { success: false, error: error.message };
+                updateStatus(5, 'error');
+                resultDiv.textContent = `❌ 配置保存网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 6. 测试配置获取
+        async function testConfigFetch() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result6');
+            const btn = document.getElementById('btn6');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试配置获取...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config`);
+                
+                if (response.ok) {
+                    let configs = [];
+                    if (data.data && data.data.configs) {
+                        configs = data.data.configs;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        configs = data.data;
+                    }
+
+                    testResults.configFetch = { success: true, count: configs.length, configs: configs };
+                    
+                    if (configs.length > 0) {
+                        updateStatus(6, 'success');
+                        resultDiv.textContent = `✅ 配置获取成功！\n找到 ${configs.length} 个配置\n\n配置详情:\n${configs.map(config => 
+                            `ID: ${config.id} | 名称: ${config.name} | 提供商: ${config.provider} | 模型: ${config.model} | 状态: ${config.status}`
+                        ).join('\n')}\n\n完整响应:\n${JSON.stringify(data, null, 2)}`;
+                        resultDiv.className = 'result success';
+                    } else {
+                        updateStatus(6, 'warning');
+                        resultDiv.textContent = `⚠️ 配置获取成功但无数据\n配置数量: 0\n响应格式: ${JSON.stringify(data, null, 2)}`;
+                        resultDiv.className = 'result warning';
+                    }
+                } else {
+                    testResults.configFetch = { success: false, error: data };
+                    updateStatus(6, 'error');
+                    resultDiv.textContent = `❌ 配置获取失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.configFetch = { success: false, error: error.message };
+                updateStatus(6, 'error');
+                resultDiv.textContent = `❌ 配置获取网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 6b. 带参数获取配置
+        async function testConfigFetchWithParams() {
+            const resultDiv = document.getElementById('result6');
+            
+            resultDiv.textContent = '正在测试带参数的配置获取...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config?page=1&page_size=50&provider=openai`);
+                
+                resultDiv.textContent += `\n\n带参数获取结果:\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.textContent += `\n\n带参数获取错误: ${error.message}`;
+            }
+        }
+
+        // 7. 测试聊天功能
+        async function testChat() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result7');
+            const btn = document.getElementById('btn7');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '正在测试聊天功能...';
+            resultDiv.className = 'result info';
+
+            // 首先检查是否有可用配置
+            if (!testResults.configFetch || !testResults.configFetch.success || testResults.configFetch.count === 0) {
+                updateStatus(7, 'warning');
+                resultDiv.textContent = '⚠️ 无法测试聊天功能\n原因: 没有可用的AI配置\n请先成功保存至少一个配置';
+                resultDiv.className = 'result warning';
+                btn.disabled = false;
+                updateProgress();
+                return;
+            }
+
+            const configId = testResults.configFetch.configs[0].id;
+            const message = document.getElementById('testMessage').value;
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: message,
+                        config_id: configId,
+                        session_id: null
+                    })
+                });
+                
+                if (response.ok) {
+                    testResults.chat = { success: true, response: data };
+                    updateStatus(7, 'success');
+                    resultDiv.textContent = `✅ 聊天功能测试成功！\n使用配置ID: ${configId}\n测试消息: ${message}\n\n响应: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    testResults.chat = { success: false, error: data };
+                    updateStatus(7, 'error');
+                    resultDiv.textContent = `❌ 聊天功能测试失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                testResults.chat = { success: false, error: error.message };
+                updateStatus(7, 'error');
+                resultDiv.textContent = `❌ 聊天功能网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+                updateProgress();
+            }
+        }
+
+        // 8. 运行完整测试
+        async function runCompleteTest() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result8');
+            const btn = document.getElementById('btn8');
+            
+            btn.disabled = true;
+            currentStep = 0;
+            testResults = {};
+            
+            resultDiv.textContent = '开始运行完整的端到端测试...\n';
+            resultDiv.className = 'result info';
+
+            // 重置所有状态
+            for (let i = 1; i <= 8; i++) {
+                updateStatus(i, 'info');
+            }
+
+            try {
+                await testConnection();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testAuth();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testPermissions();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await checkDatabase();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testConfigSave();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testConfigFetch();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await testChat();
+                
+                // 生成诊断报告
+                generateDiagnosisReport();
+                
+                updateStatus(8, 'success');
+                resultDiv.textContent = '✅ 完整测试完成！\n请查看下方的诊断报告和修复建议。';
+                resultDiv.className = 'result success';
+                
+            } catch (error) {
+                updateStatus(8, 'error');
+                resultDiv.textContent = `❌ 完整测试过程中出现错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 生成诊断报告
+        function generateDiagnosisReport() {
+            const fixDiv = document.getElementById('fixSuggestions');
+            let report = '📊 诊断报告\n\n';
+            let suggestions = [];
+
+            // 分析测试结果
+            if (!testResults.connection) {
+                suggestions.push('🔴 后端服务连接失败 - 请检查后端服务是否启动，端口是否正确');
+            }
+
+            if (!testResults.auth) {
+                suggestions.push('🔴 用户认证失败 - 请重新登录系统');
+            }
+
+            if (!testResults.permissions) {
+                suggestions.push('🔴 AI权限不足 - 请联系管理员分配AI相关权限');
+            }
+
+            if (testResults.database && !testResults.database.accessible) {
+                suggestions.push('🔴 数据库访问失败 - 请检查数据库连接和权限');
+            }
+
+            if (testResults.database && testResults.database.configCount === 0) {
+                suggestions.push('🟡 数据库中无AI配置 - 这是AI功能无法使用的主要原因');
+            }
+
+            if (testResults.configSave && !testResults.configSave.success) {
+                suggestions.push('🔴 配置保存失败 - 请检查数据格式和后端验证逻辑');
+            }
+
+            if (testResults.configFetch && !testResults.configFetch.success) {
+                suggestions.push('🔴 配置获取失败 - 请检查API接口和权限');
+            }
+
+            if (testResults.chat && !testResults.chat.success) {
+                suggestions.push('🔴 聊天功能失败 - 请检查AI配置和API密钥');
+            }
+
+            // 生成报告
+            report += `测试结果汇总:\n`;
+            report += `- 后端连接: ${testResults.connection ? '✅' : '❌'}\n`;
+            report += `- 用户认证: ${testResults.auth ? '✅' : '❌'}\n`;
+            report += `- AI权限: ${testResults.permissions ? '✅' : '❌'}\n`;
+            report += `- 数据库: ${testResults.database?.accessible ? '✅' : '❌'}\n`;
+            report += `- 配置保存: ${testResults.configSave?.success ? '✅' : '❌'}\n`;
+            report += `- 配置获取: ${testResults.configFetch?.success ? '✅' : '❌'}\n`;
+            report += `- 聊天功能: ${testResults.chat?.success ? '✅' : '❌'}\n\n`;
+
+            if (suggestions.length > 0) {
+                report += `🛠️ 修复建议:\n${suggestions.join('\n')}\n\n`;
+            } else {
+                report += '🎉 所有测试通过！AI功能应该可以正常使用。\n\n';
+            }
+
+            // 添加具体的修复步骤
+            if (testResults.database?.configCount === 0) {
+                report += `📝 立即修复步骤:\n`;
+                report += `1. 点击上方"测试保存配置"按钮创建一个测试配置\n`;
+                report += `2. 填写有效的API密钥（如果有的话）\n`;
+                report += `3. 保存成功后，AI功能应该可以使用\n`;
+                report += `4. 在实际使用中，请使用真实的API密钥\n\n`;
+            }
+
+            fixDiv.textContent = report;
+            fixDiv.className = suggestions.length > 0 ? 'result warning' : 'result success';
+        }
+
+        // 自动修复
+        async function runAutoFix() {
+            if (!checkLoginRequired()) return;
+            
+            const resultDiv = document.getElementById('result8');
+            const btn = document.getElementById('btn8b');
+            
+            btn.disabled = true;
+            resultDiv.textContent = '开始自动修复...\n';
+            resultDiv.className = 'result info';
+
+            try {
+                // 1. 先运行诊断
+                await runCompleteTest();
+                
+                // 2. 如果没有配置，自动创建一个
+                if (testResults.database?.configCount === 0) {
+                    resultDiv.textContent += '\n正在自动创建测试配置...\n';
+                    
+                    // 填写默认值
+                    document.getElementById('testConfigName').value = '自动修复配置';
+                    document.getElementById('testProvider').value = 'openai';
+                    document.getElementById('testModel').value = 'gpt-3.5-turbo';
+                    document.getElementById('testApiKey').value = 'sk-auto-fix-test-key-please-replace-with-real-key';
+                    
+                    await testConfigSave();
+                    
+                    if (testResults.configSave?.success) {
+                        resultDiv.textContent += '✅ 自动创建配置成功！\n';
+                        
+                        // 重新获取配置
+                        await testConfigFetch();
+                        
+                        resultDiv.textContent += '🎉 自动修复完成！\n';
+                        resultDiv.textContent += '⚠️ 请注意：自动创建的配置使用的是测试API密钥，请在实际使用前替换为真实的API密钥。\n';
+                        resultDiv.className = 'result success';
+                    } else {
+                        resultDiv.textContent += '❌ 自动创建配置失败，请手动检查问题。\n';
+                        resultDiv.className = 'result error';
+                    }
+                } else {
+                    resultDiv.textContent += '✅ 系统状态正常，无需自动修复。\n';
+                    resultDiv.className = 'result success';
+                }
+                
+            } catch (error) {
+                resultDiv.textContent += `❌ 自动修复过程中出现错误: ${error.message}\n`;
+                resultDiv.className = 'result error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 页面加载时的初始化
+        window.onload = function() {
+            console.log('AI功能完整诊断工具已加载');
+            console.log('API地址:', API_BASE_URL);
+            console.log('认证Token:', getAuthToken() ? '已找到' : '未找到');
+            
+            // 更新登录状态
+            updateLoginStatus();
+            
+            // 尝试从URL参数获取token
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+            if (urlToken) {
+                setAuthToken(urlToken);
+                // 清除URL中的token参数
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        };
+    </script>
+</body>
+</html>

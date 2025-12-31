@@ -873,15 +873,41 @@ func (s *NotificationService) sendEmailNotification(notification *models.Notific
 
 // sendWechatNotification 发送微信通知
 func (s *NotificationService) sendWechatNotification(notification *models.Notification) error {
-	// 这里应该集成微信企业号或服务号API
+	// 创建企业微信服务
+	wechatService := NewWechatService(s.db)
 	
-	// 模拟微信发送
-	fmt.Printf("发送微信通知: %s -> %s\n", notification.Subject, notification.Recipients)
+	// 获取企业微信配置
+	config, err := wechatService.GetWechatConfig()
+	if err != nil {
+		return fmt.Errorf("获取企业微信配置失败: %v", err)
+	}
 	
-	// 模拟发送延迟
-	time.Sleep(200 * time.Millisecond)
+	// 解析收件人列表
+	var recipients []string
+	if err := json.Unmarshal([]byte(notification.Recipients), &recipients); err != nil {
+		return fmt.Errorf("解析收件人列表失败: %v", err)
+	}
 	
-	return nil // 模拟发送成功
+	// 构建消息内容
+	content := fmt.Sprintf("## %s\n\n%s", notification.Subject, notification.Content)
+	
+	// 发送到企业微信
+	// 注意：这里简化处理，实际应该根据收件人配置不同的群组或个人
+	for _, recipient := range recipients {
+		// 如果recipient是webhook token，直接使用
+		if len(recipient) > 20 { // 假设token长度大于20
+			err = wechatService.SendWebhookMessage(config.WebhookURL+"?key="+recipient, content, "markdown")
+		} else {
+			// 否则使用默认配置
+			err = wechatService.SendWebhookMessage(config.WebhookURL+"?key="+config.Token, content, "markdown")
+		}
+		
+		if err != nil {
+			return fmt.Errorf("发送企业微信通知失败: %v", err)
+		}
+	}
+	
+	return nil
 }
 
 // sendSMSNotification 发送短信通知
@@ -896,4 +922,45 @@ func (s *NotificationService) sendSMSNotification(notification *models.Notificat
 	time.Sleep(150 * time.Millisecond)
 	
 	return nil // 模拟发送成功
+}
+
+// SendSimpleNotification 发送简单通知（用于工单系统）
+func (s *NotificationService) SendSimpleNotification(userID uint, title, content, notificationType string) error {
+	// 创建通知请求
+	req := &NotificationSendRequest{
+		Type:       "wechat", // 默认使用企业微信
+		Recipients: []string{"default"}, // 使用默认收件人
+		Subject:    title,
+		Content:    content,
+		Priority:   1,
+	}
+	
+	// 发送通知
+	_, err := s.SendNotification(req, userID)
+	return err
+}
+
+// SendTicketNotification 发送工单相关通知
+func (s *NotificationService) SendTicketNotification(ticketID uint, title, action, description string, recipients []uint) error {
+	// 创建企业微信服务
+	wechatService := NewWechatService(s.db)
+	
+	// 获取企业微信配置
+	config, err := wechatService.GetWechatConfig()
+	if err != nil {
+		// 如果没有配置企业微信，跳过通知
+		return nil
+	}
+	
+	// 发送工单通知
+	return wechatService.SendTicketNotification(config.WebhookURL, config.Token, ticketID, title, action, description)
+}
+
+// SendZabbixAlert 发送Zabbix告警通知
+func (s *NotificationService) SendZabbixAlert(params map[string]interface{}) error {
+	// 创建企业微信服务
+	wechatService := NewWechatService(s.db)
+	
+	// 使用Zabbix格式发送告警
+	return wechatService.FormatZabbixWebhookMessage(params)
 }

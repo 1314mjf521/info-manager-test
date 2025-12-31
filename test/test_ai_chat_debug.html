@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI聊天调试测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #409eff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+        button:disabled {
+            background: #c0c4cc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #f0f9ff;
+            border: 1px solid #b3d8ff;
+            color: #0066cc;
+        }
+        .error {
+            background: #fff2f0;
+            border: 1px solid #ffb3b3;
+            color: #cc0000;
+        }
+        .info {
+            background: #f9f9f9;
+            border: 1px solid #d9d9d9;
+            color: #666;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        .config-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .config-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #409eff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI聊天功能调试测试</h1>
+        <p>这个页面用于测试AI聊天功能的各个环节，帮助诊断问题。</p>
+
+        <!-- 基础连接测试 -->
+        <div class="test-section">
+            <h3>1. 基础连接测试</h3>
+            <p>测试前端是否能连接到后端API</p>
+            <button onclick="testConnection()">测试连接</button>
+            <div id="connectionResult" class="result info">点击按钮开始测试...</div>
+        </div>
+
+        <!-- AI配置测试 -->
+        <div class="test-section">
+            <h3>2. AI配置获取测试</h3>
+            <p>测试是否能获取AI配置列表</p>
+            <button onclick="testAIConfigs()">获取AI配置</button>
+            <div id="configResult" class="result info">点击按钮开始测试...</div>
+            <div id="configList" class="config-list" style="display: none;"></div>
+        </div>
+
+        <!-- AI聊天测试 -->
+        <div class="test-section">
+            <h3>3. AI聊天测试</h3>
+            <p>测试AI聊天功能</p>
+            <label>选择AI配置ID:</label>
+            <input type="number" id="configId" placeholder="输入配置ID" value="1">
+            <label>测试消息:</label>
+            <textarea id="testMessage" placeholder="输入测试消息">你好，请介绍一下你自己</textarea>
+            <button onclick="testAIChat()">发送聊天消息</button>
+            <div id="chatResult" class="result info">点击按钮开始测试...</div>
+        </div>
+
+        <!-- 网络诊断 -->
+        <div class="test-section">
+            <h3>4. 网络诊断</h3>
+            <p>检查网络连接和API端点</p>
+            <button onclick="diagnoseNetwork()">网络诊断</button>
+            <div id="networkResult" class="result info">点击按钮开始诊断...</div>
+        </div>
+    </div>
+
+    <script>
+        // API配置
+        const API_BASE_URL = 'http://localhost:8080/api/v1';
+        
+        // 获取认证token（如果有的话）
+        function getAuthToken() {
+            // 尝试从localStorage获取token
+            const authData = localStorage.getItem('auth-store');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    return parsed.token;
+                } catch (e) {
+                    console.log('无法解析认证数据');
+                }
+            }
+            return null;
+        }
+
+        // 通用请求函数
+        async function makeRequest(url, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            const data = await response.json();
+            return { response, data };
+        }
+
+        // 1. 测试基础连接
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.textContent = '正在测试连接...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/system/health`);
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ 连接成功！\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ 连接失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 2. 测试AI配置获取
+        async function testAIConfigs() {
+            const resultDiv = document.getElementById('configResult');
+            const listDiv = document.getElementById('configList');
+            
+            resultDiv.textContent = '正在获取AI配置...';
+            resultDiv.className = 'result info';
+            listDiv.style.display = 'none';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/config`);
+                
+                if (response.ok) {
+                    let configs = [];
+                    if (data.data && data.data.configs) {
+                        configs = data.data.configs;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        configs = data.data;
+                    } else if (Array.isArray(data)) {
+                        configs = data;
+                    }
+
+                    resultDiv.textContent = `✅ 获取成功！\n找到 ${configs.length} 个配置\n响应: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+
+                    if (configs.length > 0) {
+                        listDiv.innerHTML = configs.map(config => `
+                            <div class="config-item">
+                                <strong>ID: ${config.id}</strong> - ${config.name}<br>
+                                模型: ${config.model}<br>
+                                提供商: ${config.provider}<br>
+                                状态: ${config.status || 'unknown'}<br>
+                                默认: ${config.is_default ? '是' : '否'}
+                            </div>
+                        `).join('');
+                        listDiv.style.display = 'block';
+
+                        // 自动填充第一个配置的ID
+                        if (configs[0]) {
+                            document.getElementById('configId').value = configs[0].id;
+                        }
+                    }
+                } else {
+                    resultDiv.textContent = `❌ 获取失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 3. 测试AI聊天
+        async function testAIChat() {
+            const resultDiv = document.getElementById('chatResult');
+            const configId = document.getElementById('configId').value;
+            const message = document.getElementById('testMessage').value;
+
+            if (!configId || !message) {
+                resultDiv.textContent = '❌ 请输入配置ID和测试消息';
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            resultDiv.textContent = '正在发送聊天消息...';
+            resultDiv.className = 'result info';
+
+            try {
+                const { response, data } = await makeRequest(`${API_BASE_URL}/ai/chat`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message: message,
+                        config_id: parseInt(configId),
+                        session_id: null
+                    })
+                });
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ 聊天成功！\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ 聊天失败\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ 网络错误: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 4. 网络诊断
+        async function diagnoseNetwork() {
+            const resultDiv = document.getElementById('networkResult');
+            resultDiv.textContent = '正在进行网络诊断...';
+            resultDiv.className = 'result info';
+
+            const results = [];
+            
+            // 检查基础连接
+            try {
+                const response = await fetch(`${API_BASE_URL}/system/health`);
+                results.push(`✅ 基础连接: OK (${response.status})`);
+            } catch (error) {
+                results.push(`❌ 基础连接: 失败 - ${error.message}`);
+            }
+
+            // 检查认证状态
+            const token = getAuthToken();
+            if (token) {
+                results.push(`✅ 认证Token: 已找到 (${token.substring(0, 20)}...)`);
+                
+                // 测试认证接口
+                try {
+                    const { response } = await makeRequest(`${API_BASE_URL}/users/profile`);
+                    results.push(`✅ 认证验证: OK (${response.status})`);
+                } catch (error) {
+                    results.push(`❌ 认证验证: 失败 - ${error.message}`);
+                }
+            } else {
+                results.push(`⚠️ 认证Token: 未找到，可能需要登录`);
+            }
+
+            // 检查AI端点
+            try {
+                const { response } = await makeRequest(`${API_BASE_URL}/ai/config`);
+                results.push(`✅ AI配置端点: OK (${response.status})`);
+            } catch (error) {
+                results.push(`❌ AI配置端点: 失败 - ${error.message}`);
+            }
+
+            // 检查CORS
+            results.push(`ℹ️ 当前域名: ${window.location.origin}`);
+            results.push(`ℹ️ API地址: ${API_BASE_URL}`);
+            
+            resultDiv.textContent = results.join('\n');
+            resultDiv.className = 'result info';
+        }
+
+        // 页面加载时自动进行基础检查
+        window.onload = function() {
+            console.log('AI聊天调试页面已加载');
+            console.log('API地址:', API_BASE_URL);
+            console.log('认证Token:', getAuthToken() ? '已找到' : '未找到');
+        };
+    </script>
+</body>
+</html>

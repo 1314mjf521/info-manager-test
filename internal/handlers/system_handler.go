@@ -179,9 +179,13 @@ func (h *SystemHandler) GetAnnouncementByID(c *gin.Context) {
 		return
 	}
 
-	// 这里可以添加获取单个公告的逻辑
-	// 暂时返回成功响应
-	middleware.Success(c, gin.H{"id": id})
+	announcement, err := h.systemService.GetAnnouncementByID(uint(id))
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "获取公告失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, announcement)
 }
 
 // UpdateAnnouncement 更新公告
@@ -376,4 +380,310 @@ func (h *SystemHandler) GetSystemMetrics(c *gin.Context) {
 	}
 
 	middleware.Success(c, response)
+}
+
+// GetSystemStats 获取系统统计信息
+func (h *SystemHandler) GetSystemStats(c *gin.Context) {
+	stats, err := h.systemService.GetSystemStats()
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "获取系统统计信息失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, stats)
+}
+
+// InitializeDefaultConfigs 初始化默认配置
+func (h *SystemHandler) InitializeDefaultConfigs(c *gin.Context) {
+	userID, _ := middleware.GetCurrentUserID(c)
+	count, err := h.systemService.InitializeDefaultConfigs(userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "初始化默认配置失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{
+		"message": "默认配置初始化成功",
+		"count":   count,
+	})
+}
+
+// Token管理相关处理器
+
+// CreateToken 创建API Token
+func (h *SystemHandler) CreateToken(c *gin.Context) {
+	var req services.TokenCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.ValidationErrorResponse(c, "请求参数错误", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	token, err := h.systemService.CreateToken(&req, userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "创建Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, token)
+}
+
+// GetTokens 获取Token列表
+func (h *SystemHandler) GetTokens(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	
+	var userID uint
+	if userIDStr := c.Query("user_id"); userIDStr != "" {
+		if id, err := strconv.ParseUint(userIDStr, 10, 32); err == nil {
+			userID = uint(id)
+		}
+	}
+	
+	status := c.Query("status")
+
+	response, err := h.systemService.GetTokens(page, pageSize, userID, status)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "获取Token列表失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, response)
+}
+
+// RenewToken 续期Token
+func (h *SystemHandler) RenewToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	var req struct {
+		ExpiresIn int `json:"expires_in"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// 如果没有提供过期时间，默认30天
+		req.ExpiresIn = 720
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err = h.systemService.RenewToken(uint(id), req.ExpiresIn, userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "续期Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "Token续期成功"})
+}
+
+// RevokeToken 撤销Token
+func (h *SystemHandler) RevokeToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err = h.systemService.RevokeToken(uint(id), userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "撤销Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "Token撤销成功"})
+}
+// DisableToken 禁用Token
+func (h *SystemHandler) DisableToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err = h.systemService.DisableToken(uint(id), userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "禁用Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "Token禁用成功"})
+}
+
+// EnableToken 启用Token
+func (h *SystemHandler) EnableToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err = h.systemService.EnableToken(uint(id), userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "启用Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "Token启用成功"})
+}
+
+// RegenerateToken 重新生成Token
+func (h *SystemHandler) RegenerateToken(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	token, err := h.systemService.RegenerateToken(uint(id), userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "重新生成Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, token)
+}
+
+// BatchDisableTokens 批量禁用Token
+func (h *SystemHandler) BatchDisableTokens(c *gin.Context) {
+	var req struct {
+		TokenIDs []uint `json:"token_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.ValidationErrorResponse(c, "请求参数错误", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err := h.systemService.BatchDisableTokens(req.TokenIDs, userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "批量禁用Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "批量禁用成功"})
+}
+
+// BatchEnableTokens 批量启用Token
+func (h *SystemHandler) BatchEnableTokens(c *gin.Context) {
+	var req struct {
+		TokenIDs []uint `json:"token_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.ValidationErrorResponse(c, "请求参数错误", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err := h.systemService.BatchEnableTokens(req.TokenIDs, userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "批量启用Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "批量启用成功"})
+}
+
+// BatchRevokeTokens 批量撤销Token
+func (h *SystemHandler) BatchRevokeTokens(c *gin.Context) {
+	var req struct {
+		TokenIDs []uint `json:"token_ids" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		middleware.ValidationErrorResponse(c, "请求参数错误", err.Error())
+		return
+	}
+
+	userID, _ := middleware.GetCurrentUserID(c)
+	err := h.systemService.BatchRevokeTokens(req.TokenIDs, userID)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "批量撤销Token失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, gin.H{"message": "批量撤销成功"})
+}
+
+// GetTokenUsageStats 获取Token使用统计
+func (h *SystemHandler) GetTokenUsageStats(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	stats, err := h.systemService.GetTokenUsageStats(uint(id))
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "获取Token使用统计失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, stats)
+}
+
+// GetTokenUsageHistory 获取Token使用历史
+func (h *SystemHandler) GetTokenUsageHistory(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "无效的Token ID", err.Error())
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+
+	var startTime, endTime *time.Time
+	if startTimeStr := c.Query("start_time"); startTimeStr != "" {
+		if t, err := time.Parse(time.RFC3339, startTimeStr); err == nil {
+			startTime = &t
+		}
+	}
+	if endTimeStr := c.Query("end_time"); endTimeStr != "" {
+		if t, err := time.Parse(time.RFC3339, endTimeStr); err == nil {
+			endTime = &t
+		}
+	}
+
+	history, err := h.systemService.GetTokenUsageHistory(uint(id), page, pageSize, startTime, endTime)
+	if err != nil {
+		middleware.ValidationErrorResponse(c, "获取Token使用历史失败", err.Error())
+		return
+	}
+
+	middleware.Success(c, history)
+}
+
+// GetUsersForToken 获取用于Token创建的用户列表（简化版，不需要管理员权限）
+func (h *SystemHandler) GetUsersForToken(c *gin.Context) {
+	// 获取当前用户ID，确保用户已登录
+	userID, exists := middleware.GetCurrentUserID(c)
+	if !exists {
+		middleware.AuthorizationErrorResponse(c, "用户未登录")
+		return
+	}
+
+	// 调用服务获取用户列表
+	users, err := h.systemService.GetUsersForToken(userID)
+	if err != nil {
+		middleware.InternalErrorResponse(c, err)
+		return
+	}
+
+	middleware.Success(c, gin.H{
+		"users": users,
+	})
 }

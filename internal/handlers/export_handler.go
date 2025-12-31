@@ -294,19 +294,19 @@ func (h *ExportHandler) GetFiles(c *gin.Context) {
 	middleware.Success(c, result)
 }
 
-// DownloadFile 下载导出文件
+// DownloadFile 下载导出文件（通过任务ID）
 func (h *ExportHandler) DownloadFile(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		middleware.ValidationErrorResponse(c, "无效的文件ID", "")
+		middleware.ValidationErrorResponse(c, "无效的任务ID", "")
 		return
 	}
 
 	userID := c.GetUint("user_id")
 	hasAllPermission := c.GetBool("has_all_export_permission")
 
-	file, err := h.exportService.DownloadFile(uint(id), userID, hasAllPermission)
+	file, err := h.exportService.DownloadFileByTaskID(uint(id), userID, hasAllPermission)
 	if err != nil {
 		if err.Error() == "文件不存在或无权访问" || err.Error() == "文件不存在" {
 			c.JSON(http.StatusNotFound, gin.H{

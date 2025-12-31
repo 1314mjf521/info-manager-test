@@ -32,7 +32,8 @@ export interface User {
   username: string
   email: string
   avatar?: string
-  roles: string[]
+  roles: Role[]
+  permissions?: Permission[]
   is_active: boolean
   last_login?: string
   created_at?: string
@@ -42,16 +43,21 @@ export interface User {
 export interface Role {
   id: number
   name: string
+  display_name: string
   description?: string
-  permissions: Permission[]
+  permissions?: Permission[]
 }
 
 export interface Permission {
   id: number
+  name: string
+  displayName: string
+  description?: string
   resource: string
   action: string
   scope: string
-  description?: string
+  parentId?: number
+  children?: Permission[]
 }
 
 // 认证相关类型
@@ -251,4 +257,163 @@ export interface RouteMeta {
   keepAlive?: boolean
   breadcrumb?: boolean
   [key: string]: any
+}
+
+// AI相关类型定义
+export interface AIConfig {
+  id: number
+  name: string
+  provider: string
+  model: string
+  api_key: string
+  api_endpoint?: string
+  max_tokens: number
+  temperature: number
+  timeout: number
+  is_default: boolean
+  status: 'active' | 'inactive'
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AIChatSession {
+  id: number
+  title: string
+  user_id: number
+  config_id: number
+  message_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AIChatMessage {
+  id: number
+  session_id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
+export interface AITask {
+  id: number
+  type: 'chat' | 'optimize' | 'speech-to-text'
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  user_id: number
+  config_id: number
+  input_data: any
+  output_data?: any
+  error_message?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AIUsageStats {
+  id: number
+  user_id: number
+  config_id: number
+  task_type: string
+  date: string
+  request_count: number
+  success_count: number
+  tokens_used: number
+  total_duration: number
+  created_at: string
+}
+
+export interface AIOptimizeRequest {
+  content: {
+    text: string
+    type: string
+  }
+  goals: string[]
+  config_id: number
+}
+
+export interface AISpeechToTextRequest {
+  audio: File
+  language?: string
+  config_id: number
+}
+
+export interface AISpeechToTextResponse {
+  text: string
+  language: string
+  confidence: number
+  duration: number
+  segments?: Array<{
+    start: number
+    end: number
+    text: string
+  }>
+}
+
+// 工单相关类型
+export interface Ticket {
+  id: number
+  title: string
+  description: string
+  type: 'bug' | 'feature' | 'support' | 'change'
+  status: 'open' | 'progress' | 'pending' | 'resolved' | 'closed' | 'rejected'
+  priority: 'low' | 'normal' | 'high' | 'critical'
+  creator_id: number
+  assignee_id?: number
+  category?: string
+  tags?: string[]
+  due_date?: string
+  resolved_at?: string
+  closed_at?: string
+  created_at: string
+  updated_at: string
+  creator?: User
+  assignee?: User
+  comments?: TicketComment[]
+  attachments?: TicketAttachment[]
+  history?: TicketHistory[]
+}
+
+export interface TicketComment {
+  id: number
+  ticket_id: number
+  user_id: number
+  content: string
+  is_public: boolean
+  created_at: string
+  updated_at: string
+  user?: User
+}
+
+export interface TicketAttachment {
+  id: number
+  ticket_id: number
+  file_name: string
+  file_size: number
+  content_type: string
+  file_path?: string
+  uploaded_by: number
+  created_at: string
+  uploader?: User
+}
+
+export interface TicketHistory {
+  id: number
+  ticket_id: number
+  user_id: number
+  action: string
+  description: string
+  created_at: string
+  user?: User
+}
+
+export interface TicketStatistics {
+  total: number
+  open: number
+  progress: number
+  pending: number
+  resolved: number
+  closed: number
+  rejected: number
+  status: Record<string, number>
+  type: Record<string, number>
+  priority: Record<string, number>
 }

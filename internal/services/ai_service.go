@@ -32,16 +32,29 @@ func NewAIService(db *gorm.DB) *AIService {
 
 // AI配置相关请求结构
 type AIConfigRequest struct {
-	Provider    string  `json:"provider" binding:"required,oneof=openai azure anthropic"`
-	Name        string  `json:"name" binding:"required"`
-	APIKey      string  `json:"api_key" binding:"required"`
-	APIEndpoint string  `json:"api_endpoint"`
-	Model       string  `json:"model" binding:"required"`
-	Config      string  `json:"config"`
-	IsActive    bool    `json:"is_active"`
-	IsDefault   bool    `json:"is_default"`
-	MaxTokens   int     `json:"max_tokens"`
-	Temperature float32 `json:"temperature"`
+	Provider      string   `json:"provider" binding:"required,oneof=openai azure anthropic google custom"`
+	Name          string   `json:"name" binding:"required"`
+	APIKey        string   `json:"api_key" binding:"required"`
+	APIEndpoint   string   `json:"api_endpoint"`
+	Model         string   `json:"model" binding:"required"`
+	Config        string   `json:"config"`
+	
+	// 新增字段（可选）
+	Categories    []string `json:"categories"`    // 功能分类: chat, optimize, speech, image, code
+	Tags          []string `json:"tags"`         // 标签: production, development, fast, accurate, cost-effective
+	Description   string   `json:"description"`  // 配置描述
+	Priority      *int     `json:"priority"`     // 优先级 1-10，使用指针使其可选
+	
+	// 性能配置
+	IsActive      *bool    `json:"is_active"`    // 使用指针使其可选
+	IsDefault     *bool    `json:"is_default"`   // 使用指针使其可选
+	MaxTokens     *int     `json:"max_tokens"`   // 使用指针使其可选
+	Temperature   *float32 `json:"temperature"`  // 使用指针使其可选
+	
+	// 使用限制（可选）
+	DailyLimit    *int     `json:"daily_limit"`    // 每日使用限制
+	MonthlyLimit  *int     `json:"monthly_limit"`  // 每月使用限制
+	CostPerToken  *float64 `json:"cost_per_token"` // 每token成本
 }
 
 // 记录优化请求结构
@@ -66,6 +79,14 @@ type AIChatRequest struct {
 	Message   string `json:"message" binding:"required"`
 	Stream    bool   `json:"stream"`
 	Options   map[string]interface{} `json:"options"`
+}
+
+// 测试连接请求结构
+type TestConnectionRequest struct {
+	Provider    string `json:"provider" binding:"required,oneof=openai azure anthropic google custom"`
+	APIKey      string `json:"api_key" binding:"required"`
+	APIEndpoint string `json:"api_endpoint"`
+	Model       string `json:"model" binding:"required"`
 }
 
 // 响应结构
@@ -149,7 +170,7 @@ type OpenAIError struct {
 // CreateConfig 创建AI配置
 func (s *AIService) CreateConfig(req *AIConfigRequest, userID uint) (*models.AIConfig, error) {
 	// 如果设置为默认配置，取消其他同提供商的默认设置
-	if req.IsDefault {
+	if req.IsDefault != nil && *req.IsDefault {
 		if err := s.db.Model(&models.AIConfig{}).
 			Where("provider = ? AND is_default = ?", req.Provider, true).
 			Update("is_default", false).Error; err != nil {
@@ -157,26 +178,80 @@ func (s *AIService) CreateConfig(req *AIConfigRequest, userID uint) (*models.AIC
 		}
 	}
 
-	config := &models.AIConfig{
-		Provider:    req.Provider,
-		Name:        req.Name,
-		APIKey:      s.encryptAPIKey(req.APIKey), // 加密存储
-		APIEndpoint: req.APIEndpoint,
-		Model:       req.Model,
-		Config:      req.Config,
-		IsActive:    req.IsActive,
-		IsDefault:   req.IsDefault,
-		MaxTokens:   req.MaxTokens,
-		Temperature: req.Temperature,
-		CreatedBy:   userID,
+	// 处理分类和标签
+	categories := req.Categories
+	if len(categories) == 0 {
+		categories = []string{"chat"} // 默认支持聊天功能
+	}
+	categoriesJSON, _ := json.Marshal(categories)
+	
+	tags := req.Tags
+	if len(tags) == 0 {
+		tags = []string{"production"} // 默认标签
+	}
+	tagsJSON, _ := json.Marshal(tags)
+
+	// 处理可选字段的默认值
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
+	
+	isDefault := false
+	if req.IsDefault != nil {
+		isDefault = *req.IsDefault
+	}
+	
+	maxTokens := 4000
+	if req.MaxTokens != nil && *req.MaxTokens > 0 {
+		maxTokens = *req.MaxTokens
+	}
+	
+	temperature := float32(0.7)
+	if req.Temperature != nil && *req.Temperature >= 0 {
+		temperature = *req.Temperature
+	}
+	
+	priority := 5
+	if req.Priority != nil && *req.Priority > 0 {
+		priority = *req.Priority
+	}
+	
+	dailyLimit := 0
+	if req.DailyLimit != nil && *req.DailyLimit >= 0 {
+		dailyLimit = *req.DailyLimit
+	}
+	
+	monthlyLimit := 0
+	if req.MonthlyLimit != nil && *req.MonthlyLimit >= 0 {
+		monthlyLimit = *req.MonthlyLimit
+	}
+	
+	costPerToken := 0.0
+	if req.CostPerToken != nil && *req.CostPerToken >= 0 {
+		costPerToken = *req.CostPerToken
 	}
 
-	// 设置默认值
-	if config.MaxTokens == 0 {
-		config.MaxTokens = 4000
-	}
-	if config.Temperature == 0 {
-		config.Temperature = 0.7
+	config := &models.AIConfig{
+		Provider:      req.Provider,
+		Name:          req.Name,
+		APIKey:        s.encryptAPIKey(req.APIKey), // 加密存储
+		APIEndpoint:   req.APIEndpoint,
+		Model:         req.Model,
+		Config:        req.Config,
+		Categories:    string(categoriesJSON),
+		Tags:          string(tagsJSON),
+		Description:   req.Description,
+		Priority:      priority,
+		IsActive:      isActive,
+		IsDefault:     isDefault,
+		MaxTokens:     maxTokens,
+		Temperature:   temperature,
+		DailyLimit:    dailyLimit,
+		MonthlyLimit:  monthlyLimit,
+		CostPerToken:  costPerToken,
+		Status:        "active",
+		CreatedBy:     userID,
 	}
 
 	if err := s.db.Create(config).Error; err != nil {
@@ -282,7 +357,7 @@ func (s *AIService) UpdateConfig(id uint, req *AIConfigRequest, userID uint, has
 	}
 
 	// 如果设置为默认配置，取消其他同提供商的默认设置
-	if req.IsDefault && !config.IsDefault {
+	if req.IsDefault != nil && *req.IsDefault && !config.IsDefault {
 		if err := s.db.Model(&models.AIConfig{}).
 			Where("provider = ? AND is_default = ? AND id != ?", req.Provider, true, id).
 			Update("is_default", false).Error; err != nil {
@@ -297,10 +372,32 @@ func (s *AIService) UpdateConfig(id uint, req *AIConfigRequest, userID uint, has
 		"api_endpoint": req.APIEndpoint,
 		"model":        req.Model,
 		"config":       req.Config,
-		"is_active":    req.IsActive,
-		"is_default":   req.IsDefault,
-		"max_tokens":   req.MaxTokens,
-		"temperature":  req.Temperature,
+	}
+
+	// 只更新提供的可选字段
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	if req.IsDefault != nil {
+		updates["is_default"] = *req.IsDefault
+	}
+	if req.MaxTokens != nil {
+		updates["max_tokens"] = *req.MaxTokens
+	}
+	if req.Temperature != nil {
+		updates["temperature"] = *req.Temperature
+	}
+	if req.Priority != nil {
+		updates["priority"] = *req.Priority
+	}
+	if req.DailyLimit != nil {
+		updates["daily_limit"] = *req.DailyLimit
+	}
+	if req.MonthlyLimit != nil {
+		updates["monthly_limit"] = *req.MonthlyLimit
+	}
+	if req.CostPerToken != nil {
+		updates["cost_per_token"] = *req.CostPerToken
 	}
 
 	// 如果提供了新的API密钥，则更新
@@ -446,7 +543,7 @@ func (s *AIService) SpeechToText(req *SpeechToTextRequest, userID uint) (*models
 // Chat AI聊天
 func (s *AIService) Chat(req *AIChatRequest, userID uint) (*models.AIChatSession, error) {
 	// 获取AI配置
-	config, err := s.getActiveConfig(req.ConfigID, "openai", userID)
+	config, err := s.getActiveConfig(req.ConfigID, "", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -491,13 +588,36 @@ func (s *AIService) Chat(req *AIChatRequest, userID uint) (*models.AIChatSession
 		return nil, fmt.Errorf("保存用户消息失败: %v", err)
 	}
 
-	// 异步处理AI回复
-	go s.processChatMessage(session.ID, userMessage.ID, req.Stream)
+	// 同步处理AI回复
+	aiReply, err := s.generateAIReply(session, config, req.Message)
+	if err != nil {
+		// 创建错误消息
+		errorMessage := &models.AIChatMessage{
+			SessionID: session.ID,
+			Role:      "assistant",
+			Content:   fmt.Sprintf("抱歉，处理您的请求时出现错误: %v", err),
+		}
+		s.db.Create(errorMessage)
+		return nil, fmt.Errorf("生成AI回复失败: %v", err)
+	}
+
+	// 保存AI回复
+	assistantMessage := &models.AIChatMessage{
+		SessionID: session.ID,
+		Role:      "assistant",
+		Content:   aiReply.Content,
+		Tokens:    aiReply.Tokens,
+	}
+
+	if err := s.db.Create(assistantMessage).Error; err != nil {
+		return nil, fmt.Errorf("保存AI回复失败: %v", err)
+	}
 
 	// 更新会话信息
 	now := time.Now()
 	session.LastUsedAt = &now
-	session.MessageCount++
+	session.MessageCount += 2 // 用户消息 + AI回复
+	session.TokensUsed += aiReply.Tokens
 	s.db.Save(session)
 
 	// 重新加载会话数据
@@ -506,6 +626,62 @@ func (s *AIService) Chat(req *AIChatRequest, userID uint) (*models.AIChatSession
 	}
 
 	return session, nil
+}
+
+// AIReply AI回复结构
+type AIReply struct {
+	Content string
+	Tokens  int
+}
+
+// generateAIReply 生成AI回复
+func (s *AIService) generateAIReply(session *models.AIChatSession, config *models.AIConfig, userMessage string) (*AIReply, error) {
+	// 构建消息历史
+	messages := make([]OpenAIMessage, 0)
+	
+	// 添加系统消息
+	messages = append(messages, OpenAIMessage{
+		Role:    "system",
+		Content: "你是一个有用的AI助手，请用中文回答用户的问题。",
+	})
+
+	// 获取历史消息
+	var historyMessages []models.AIChatMessage
+	if err := s.db.Where("session_id = ?", session.ID).
+		Order("created_at ASC").
+		Limit(10). // 限制最近10条消息
+		Find(&historyMessages).Error; err != nil {
+		return nil, fmt.Errorf("获取历史消息失败: %v", err)
+	}
+
+	// 添加历史消息
+	for _, msg := range historyMessages {
+		messages = append(messages, OpenAIMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		})
+	}
+
+	// 添加当前用户消息
+	messages = append(messages, OpenAIMessage{
+		Role:    "user",
+		Content: userMessage,
+	})
+
+	// 调用AI API
+	response, err := s.callOpenAIChatCompletion(config, messages, false)
+	if err != nil {
+		return nil, fmt.Errorf("调用AI API失败: %v", err)
+	}
+
+	if len(response.Choices) == 0 {
+		return nil, fmt.Errorf("AI API返回空回复")
+	}
+
+	return &AIReply{
+		Content: response.Choices[0].Message.Content,
+		Tokens:  response.Usage.TotalTokens,
+	}, nil
 }
 
 // 辅助方法
@@ -531,19 +707,32 @@ func (s *AIService) getActiveConfig(configID *uint, provider string, userID uint
 
 	if configID != nil {
 		// 使用指定的配置
-		if err := s.db.Where("id = ? AND is_active = ?", *configID, true).First(&config).Error; err != nil {
+		if err := s.db.Where("id = ? AND status = ?", *configID, "active").First(&config).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil, fmt.Errorf("指定的AI配置不存在或已禁用")
 			}
 			return nil, fmt.Errorf("获取AI配置失败: %v", err)
 		}
 	} else {
-		// 使用默认配置
-		if err := s.db.Where("provider = ? AND is_default = ? AND is_active = ?", provider, true, true).First(&config).Error; err != nil {
+		// 使用默认配置或第一个可用配置
+		query := s.db.Where("status = ?", "active")
+		if provider != "" {
+			query = query.Where("provider = ?", provider)
+		}
+		
+		// 先尝试获取默认配置
+		if err := query.Where("is_default = ?", true).First(&config).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				return nil, fmt.Errorf("未找到默认的%s配置", provider)
+				// 如果没有默认配置，获取第一个可用配置
+				if err := query.Order("priority DESC, created_at ASC").First(&config).Error; err != nil {
+					if err == gorm.ErrRecordNotFound {
+						return nil, fmt.Errorf("未找到可用的AI配置")
+					}
+					return nil, fmt.Errorf("获取AI配置失败: %v", err)
+				}
+			} else {
+				return nil, fmt.Errorf("获取默认AI配置失败: %v", err)
 			}
-			return nil, fmt.Errorf("获取默认AI配置失败: %v", err)
 		}
 	}
 
@@ -878,6 +1067,53 @@ func (s *AIService) updateUsageStats(userID, configID uint, taskType string, req
 
 		s.db.Model(&stats).Updates(updates)
 	}
+}
+
+// TestConnection 测试连接
+func (s *AIService) TestConnection(req *TestConnectionRequest, userID uint) (map[string]interface{}, error) {
+	// 创建临时配置进行测试
+	tempConfig := &models.AIConfig{
+		Provider:    req.Provider,
+		APIKey:      s.encryptAPIKey(req.APIKey),
+		APIEndpoint: req.APIEndpoint,
+		Model:       req.Model,
+		Status:      "active",
+	}
+
+	// 根据提供商进行测试
+	switch req.Provider {
+	case "openai", "azure":
+		return s.testOpenAIConnection(tempConfig)
+	default:
+		return nil, fmt.Errorf("不支持的提供商: %s", req.Provider)
+	}
+}
+
+// testOpenAIConnection 测试OpenAI连接
+func (s *AIService) testOpenAIConnection(config *models.AIConfig) (map[string]interface{}, error) {
+	// 构建测试请求
+	messages := []OpenAIMessage{
+		{
+			Role:    "user",
+			Content: "Hello, this is a connection test.",
+		},
+	}
+
+	startTime := time.Now()
+	response, err := s.callOpenAIChatCompletion(config, messages, false)
+	responseTime := time.Since(startTime).Milliseconds()
+
+	if err != nil {
+		return nil, fmt.Errorf("连接测试失败: %v", err)
+	}
+
+	return map[string]interface{}{
+		"success":       true,
+		"response_time": responseTime,
+		"model":         response.Model,
+		"provider":      config.Provider,
+		"test_message":  "连接测试成功",
+	}, nil
 }
 
 // HealthCheck 健康检查

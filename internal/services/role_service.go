@@ -292,7 +292,20 @@ func (s *RoleService) AssignPermissions(roleID uint, req *AssignPermissionsReque
 	}
 
 	if len(permissions) != len(req.PermissionIDs) {
-		return nil, fmt.Errorf("部分权限ID不存在")
+		// 找出缺失的权限ID
+		foundIDs := make(map[uint]bool)
+		for _, perm := range permissions {
+			foundIDs[perm.ID] = true
+		}
+		
+		var missingIDs []uint
+		for _, id := range req.PermissionIDs {
+			if !foundIDs[id] {
+				missingIDs = append(missingIDs, id)
+			}
+		}
+		
+		return nil, fmt.Errorf("权限ID不存在: %v (请求: %v, 找到: %d个)", missingIDs, req.PermissionIDs, len(permissions))
 	}
 
 	// 开始事务

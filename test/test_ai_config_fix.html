@@ -1,0 +1,568 @@
+l>>
+</htm</body/script>
+ }
+    <     }
+     
+         ge}`);or.messa{err: $ert(`网络错误          al     {
+  h (error)     } catc     }
+             ;
+     | '未知错误'}`)rror.error |t(`删除失败: ${e        aler         n();
+   esponse.jsoit rwa error = a    const            {
+     else       }    列表
+       重新加载(); //onfigs loadC                  成功');
+  alert('配置删除                  e.ok) {
+ espons    if (r        
+               });
+                     
+E': 'DELETmethod                 `, {
+   nfigId}/${co/configch(`/api/aietit fnse = awast respocon            
+    ry {           t     
+  }
+       
+               return;            置吗？')) {
+确定要删除这个配nfirm('    if (!co      ) {
+  igIdfig(confeteConeln dnc functiosy   a 删除配置
+        //      }
+
+  `);
+      (功能待实现)configId}${`编辑配置 ID:      alert( {
+       d)(configInfigeditCo   function     配置
+  编辑//      }
+
+         }
+            ssage}`);
+ ${error.melert(`网络错误:          a    rror) {
+   } catch (e           }
+               );
+  知错误'}`rror || '未r.eerro ${失败:连接测试 alert(`                  );
+ ponse.json(it resrror = awa  const e                {
+    } else       ;
+        '连接测试成功')  alert(               k) {
+   e.oponsf (res           i       
+              });
+               d: 'POST'
+      metho        
+       Id}`, {fig${conhealth/pi/ai/(`/ait fetch= awaonse espnst r          co
+       try {          nfigId) {
+ coConfig(ing testExistfunctionnc      asy配置
+   测试现有/      /
+
+   
+        }eld;|| fi[field] rn labelsretu            };
+        '模型'
+    l:   mode         ',
+     int: 'API端点  api_endpo       
+       ',I密钥api_key: 'AP        
+        商',: '服务提供iderprov             置名称',
+      name: '配   
+           {nst labels =         cod) {
+   bel(fielLa getField  function段标签
+      取字       // 获
+         }
+     }
+       ;
+ = 'none'yle.displayltElement.st  resu              {
+  else           };
+ block'isplay = 'nt.style.demetElsul       re         ype}`;
+result ${tame = `.classNentultElemres         ;
+        = messagetContentexltElement.t     resu        {
+     (message)          if  esult');
+d('configRtByInt.getElemenent = documesultElem re      const   
+    {e, type)ssagult(meion showRes      funct显示结果
+          // 
+
+     }
+   ('', '');ultResow         sh;
+         })      ve');
+ti'acList.remove( card.class               => {
+card d').forEach(-car('.providerAlluerySelectorument.qoc  d      n>';
+    选择模型</optio="">请n valuetioL = '<opTMl').innerHntById('mode.getEleme   document      ne';
+   = 'nosplay tyle.di).sp'ntGrouId('endpoilementByument.getE         doc  
+ ();rm').resetd('configFoyItBt.getElemen   documen         {
+rm() setFo renction     fu重置表单
+    // 
+
+        }   ml;
+    rHTML = htElement.inne  list      
+              in('');
+  `).jo       iv>
+     </d              div>
+  </                   ton>
+ </but ''}>删除d' :? 'disablefault nfig.is_de" ${coconfig.id})Config(${elete onclick="dte;": whi5; colorund: #f5656"backgrobtn" style=s="ascl<button                      >
+   ton>编辑</butonfig.id})"Config(${c"editonclick=rning" n btn-walass="bt   <button c                  
+   button>试</)">测id}(${config.nfigstExistingCoteonclick="ccess" tn btn-su="button class     <b             >
+      top: 10px;"n-rgi"mae=   <div styl                 </div>
+            l}
+        de ${config.moovider)} ·(config.prrNamederovi{getP          $             x;">
+ -size: 14p666; font: #lor="costyle       <div      
+              </div>           /span>
+    '禁用'}< :'启用''active' ? == g.status =;">${confi-size: 12px: 3px; fontder-radius6px; boradding: 2px e; p: whitlorco}; #e6a23c'7c23a' : 'e' ? '#6 'activ==s =.statu: ${configoundackgr="b style  <span                   
+   ' : ''}n>认</spapx;">默size: 12t- fon3px;us:  border-rading: 2px 6px;e; paddi: whitolor7c23a; cground: #6style="back'<span efault ? config.is_d  ${                } 
+      ig.namenfco      ${               px;">
+   in-bottom: 5marg 600; weight:le="font-    <div sty                : 4px;">
+r-radiuspx; borde10bottom: 5px; margin-ing: 1ddd; paddolid #der: 1px s"bore=   <div styl           
+  (config => `.mapl = configsconst htm             }
+
+         urn;
+           ret       
+>';<p>暂无配置</pnerHTML = 'stElement.in       li       {
+   h === 0)lengtigs.  if (conf         
+ igList');onf('cyIdElementBcument.getnt = domestEleconst li          ) {
+  gs(configsplayConfiunction dis
+        f列表  // 显示配置   
+
+   
+        }       }v>`;
+     }</disage ${error.mesor">网络错误:esult erriv class="r = `<dHTML').inneristgLconfilementById('etEocument.g           d
+     h (error) {   } catc        }
+                ;
+ /div>` null, 2)}<ror,y(erifSON.string载失败: ${Jerror">加esult ss="r<div clanerHTML = `t').inLisd('configntByIElemecument.get      do     
+         on();onse.js await respnst error =        co            } else {
+        ;
+        | [])figs |t.cons(resuligdisplayConf                 son();
+   e.jponsait resresult = aw    const             ok) {
+    sponse. if (re            nfig');
+   /ai/coh('/apiit fetc = awasenst respon    co         y {
+      tr{
+         () oadConfigsction lasync fun
+        载配置列表/ 加  /
+             }
+}
+             r');
+ 'erroe}`,agr.mess${erro络错误: sult(`❌ 网 showRe               (error) {
+ catch    }     }
+             ;
+       'error') 2)}`, rror, null,ngify(eN.strin错误详情: ${JSOus}\atesponse.st{r失败\n状态码: $ult(`❌ 连接测试es       showR         
+    ();sponse.jsonawait reerror = st  con                e {
+    } els         );
+      , 'success'l, 2)}` nulsult,gify(rerin应: ${JSON.st 连接测试成功\n响Result(`✅      show            ();
+  ponse.json await rest =const resul                    k) {
+ponse.o (res       if       });
+
+             )
+     atay(testD.stringif  body: JSON                 ,
+          }    ',
+       tion/jsone': 'applicant-Typ      'Conte              : {
+    headers            ',
+        'POSTmethod:                    
+  {onnection',/test-c('/api/aifetchait esponse = awst r        con
+        try {         
+   
+ccess');)}`, 'sunull, 2tData, esify(tstringSON.据:\n${J(`测试连接数showResult          }
+
+          ;
+    turn         re      error');
+ ', '供商、API密钥和模型写提lt('请先填  showResu           
+   l) {dea.mo| !testDati_key |estData.ap || !tata.provider  if (!testD              };
+
+   ')
+     'modelormData.get(    model: f     ,
+       ') || ''dpoint'api_enData.get(formint: ndpo  api_e            ey'),
+  t('api_k formData.gepi_key:    a            ),
+ovider'get('prr: formData.ovide       pr{
+         stData =    const te                   
+;
+  rm)(fonew FormDatarmData =  const fo
+           orm');Id('configFentBylem.getEocument form = d      const) {
+      tion(onnec testCnc function   asy连接
+     测试
+        // }
+}
+                     'error');
+ssage}`,or.me误: ${err网络错esult(`❌      showR
+           ) {rroratch (e     } c
+                 };
+      }`, 'error') 2), null,ify(error{JSON.string\n错误详情: $tatus}{response.s\n状态码: $配置保存失败ult(`❌  showRes        
+           .json();it responserror = awa e      const               } else {
+            ;
+   ')'success, 2)}`ull, esult, ny(rON.stringif\n响应: ${JS(`✅ 配置保存成功sult  showRe          
+        );sponse.json(re await esult =     const r          ) {
+     okonse.if (resp            
+    
+    });            a)
+nfigDatgify(co JSON.strindy:    bo                     },
+               son',
+cation/jype': 'appli'Content-T                  : {
+      ershead                 
+    'POST',d:    metho               
+ ig', {nfpi/ai/co fetch('/aaitawesponse = nst r         co    {
+          try
+
+      ');cess 2)}`, 'sucata, null,gify(configDin{JSON.str发送的数据:\n$lt(`wResu sho
+                 };
+
+       0_per_token:       cost    ,
+     hly_limit: 0ont        m
+        : 0,y_limit     dail        || 0.7,
+   )) erature't('tempgea.rmDatoat(foarseFlperature: p tem            096,
+   ns')) || 4x_toke('maormData.getrseInt(fkens: pa_to       max       
+  ') === 'on',_defaulta.get('isformDatlt: _defau     is     rue,
+      : t   is_active            : 5,
+  priority           
+    置','诊断工具创建的测试配on:   descripti            nosis'],
+  test', 'diagags: [' t              hat'],
+ s: ['cegoriecat        ,
+        fig: ''         con      ),
+ t('model'mData.gemodel: for           | '',
+     endpoint') |get('api_ata.formDdpoint: api_en             '),
+   keyt('api_ata.geey: formD   api_k            r'),
+ ('provideet: formData.gvider      pro         me'),
+ ata.get('namDe: for     nam  
+         ata = {t configDns   co        构建配置数据
+    //          }
+
+            }
+         n;
+             retur           );
+   or' 'errl(field)}`,be${getFieldLa请填写wResult(`sho                   ield)) {
+ (fa.getif (!formDat               {
+ ields) requiredFd of t fielor (cons      f          
+             }
+   nt');
+    api_endpois.push('quiredField   re   
+          tom') { === 'cus provider= 'azure' ||vider ==ro    if (p            
+       ;
+ er')get('provid = formData.ideronst prov   c   
+      del'];key', 'moer', 'api_me', 'providields = ['naequiredF  const r          
+ // 验证必填字段   
+            ;
+        mData(form)Fora = new ormDat    const f       gForm');
+ fi'conById(mentlent.getEocumenst form = d      co) {
+      aveConfig( sc function        asyn // 保存配置
+
+
+       ;
+        }|| provider[provider] esurn nam   ret    
+         };     '自定义模型'
+   :    custom           ',
+  e OpenAIzur 'A  azure:            OpenAI',
+  : 'penai          o    = {
+  nst names        co
+     rovider) {rName(pn getProvideunctio        f 获取提供商名称
+        //
+
+
+        }     } }
+                      .value;
+der][0]rovilOptions[pdemo.value = ect    modelSel            ) {
+     > 0lengther].ovidlOptions[prif (mode            
+     设置默认模型  //              
+               
+     });     ;
+       (option)ppendChildSelect.a      model             l;
+ abeel.lnt = modxtConteoption.te                   e;
+ model.valuion.value =          opt     ;
+      ')ionment('optEleeatecrument.ption = docst o    con             el => {
+   ch(modorEa.fovider]prodelOptions[   m           ) {
+  vider][proelOptions (mod        ifn>';
+    择模型</optio">请选 value="<option = 'TMLerHlect.inn     modelSe     新模型选项
+        // 更 }
+
+             = '';
+    ut.value  endpointInp      ;
+         red = falserequit.puendpointIn                ;
+lay = 'none'ispoup.style.dndpointGr e            {
+         } else               }
+      
+  /v1';alhost:8000loc// = 'http:tInput.valuendpoin           e   e) {
+      aluInput.v!endpointm' &&  === 'custoovider if (pr           设置默认端点
+          //                   
+
+        er] || '';Tips[providointndptent = ep.textCon  endpointTi      
+        er] || '';iders[provceholdntPlandpoiholder = ece.plaintInput endpo           
+    rue;equired = tput.rintIn    endpo           k';
+ 'bloclay = tyle.disp.stGroupndpoin  e              om') {
+== 'cust provider =ure' ||== 'azder =vi if (pro         端点字段
+     // 显示/隐藏     ');
+
+    yId('modellementBcument.getESelect = dot model       cons     ');
+'endpointTipyId(.getElementBmentcuintTip = do const endpo        
+   oint');d('apiEndplementByInt.getEdocumentInput = endpoist con         ');
+   ointGroupdpd('enentByIlemcument.getEroup = dotGendpoin   const        r) {
+  r(provideProvidemFororeF updattion  func
+       根据提供商更新表单  //
+
+      
+        }r);r(providemForProvideFor      update     } 配置`;
+ er)idName(providerov`${getPrvalue = e').'configNamtById(nt.getElemen      docume      rovider;
+lue = provider').vaById('plementnt.getEocume       d 更新表单
+     //      );
+
+      tive't.add('ac).classLisr}"]`"${providerovider=ta-p`[dalector(erySe.qudocument    
+            }););
+        ctive'e('ast.removclassLid.  car           {
+   rd => ch(carEafo).r-card'('.provideorAllerySelect document.qu        片状态
+    // 更新卡       
+    ovider) {r(prtProvideselec   function    商
+  选择提供   // });
+
+            
+        });    s.value);
+ er(thiProvidpdateFormFor  u         {
+      tion()nce', fuer('changntListendEve.adovider')mentById('pr.getEleument      doc
+      事件选择变化/ 提供商  /             });
+
+               });
+          vider);
+ro(pectProvider   sel         
+        der;t.provitase= this.dar videconst pro                     {
+, function()er('click'entListenaddEv     card.   
+        ard => {.forEach(crd')ider-cal('.provctorAlquerySeleocument. d           卡片点击事件
+供商   // 提{
+         unction()  fLoaded',tentr('DOMConventListenement.addEocu       d
+ 件监听   // 初始化事
+
+     };   
+     0/v1'ost:800/localh: 'http:/     custom
+       com',.azure..openaiurceur-resottps://yo'h    azure:   
+       {eholders =ntPlacdpoi   const en     / 端点占位符
+
+        / };
+  /v1'
+     pi.com/your-a 或 https:/ost:8000/v1//localhhttp:API端点，如：tom: '自定义模型的us    c  
+      azure.com',penai..oour-resource：https://yI端点，如penAI的AP 'Azure O    azure:     {
+   = ps t endpointTi      cons
+    // 端点提示
+      };
+       ]
+           al' }
+  tr: 'Mislabeltral', isalue: 'm        { v       ma 2' },
+ el: 'Llaa-2', labamalue: 'll { v         
+       '自定义模型' },el:el', labcustom-mod  { value: '          [
+    stom:         cu   ],
+           o' }
+  'GPT-4 Turb', label: urbo: 'gpt-4-t     { value           PT-4' },
+l: 'G labee: 'gpt-4',{ valu               ,
+  }-3.5 Turbo'abel: 'GPTrbo', l-35-tuue: 'gpt val         {   re: [
+      azu         ],
+      
+       T-4o' }, label: 'GP 'gpt-4o' value:      {       o' },
+   4 Turbl: 'GPT-', labe-4-turbo value: 'gpt   {             T-4' },
+l: 'GP-4', labe 'gpte:    { valu          
+  rbo' },T-3.5 Tu'GPel: lab', rbopt-3.5-tue: 'g     { valu       : [
+        openai        ons = {
+lOpti mode      const// 模型配置
+          script>
+    <</div>
+
+>
+    div     </iv>
+   15px;"></d: opmargin-te="gList" styl"confi  <div id=        /button>
+  置列表<s()">加载配nfig="loadCocklioncrimary" -ptn="btn bssbutton" clape="n ty<butto          
+  div> 现有配置</e">3.="test-titllass c     <div
+       ion">st-sects="tev clas <di     配置列表 -->
+      <!-- 现有
+    
+>    </div  "></div>
+  lay: none;style="disp" resultt" class="Resuld="config    <div i
+                     </div>
+         on>
+  表单</buttrm()">重置esetFolick="r" oncrningn btn-wa="btn" classe="buttoon typ      <butt       on>
+   >测试连接</button()"testConnecti onclick="ss"-succetntn blass="b c"button"ton type=but           <
+     配置</button>ig()">保存eConfclick="savprimary" on="btn btn-asson" clttpe="bu<button ty                   <div>
+        
+             rm>
+        </fo</div>
+                  
+   </label>            
+       认配置 设为默lt">is_defau" name="ault="isDefkbox" idype="checinput t          <            label>
+         <       >
+      rm-group"="fo<div class          
+              
+            </div>  
+          "0.1">ep= stx="2"="0" ma"0.7" mine" value=mperatur="tere" name"temperatu id="e="numberyp   <input t           el>
+      ab参数</lure">温度rat"tempeabel for=         <l           oup">
+form-grss=" <div cla        
+                 v>
+        </di          00">
+    "320"1" max=n=6" miue="409" valsokenme="max_txTokens" na id="mae="number"ut typ<inp                   el>
+ n数</lab">最大TokemaxTokenslabel for="    <                m-group">
+class="for    <div             
+                    </div>
+         ect>
+   /sel        <          ion>
+  选择模型</opt">请"ption value=    <o             
+       ed>requirmodel" l" name=" id="modeelect          <s
+          abel>">模型 *</lor="model fbel        <la          
+  group">rm-ss="fo <div cla            
+                
+         </div>   
+       all></smop: 5px;">argin-t: 12px; m6; font-sizeor: #66style="colointTip" id="endp <small                  API端点">
+  "请输入r=oldet" placehi_endpoinname="ap" point="apiEndurl" idnput type="         <i     bel>
+      </la *int">API端点"apiEndpobel for=     <la           ne;">
+    y: noyle="displaGroup" stendpointdth" id="l-wim-group ful"forlass=v c         <di              
+       /div>
+          <      
+  " required>请输入API密钥"r=laceholdepi_key" pme="apiKey" na="a idassword"pe="p<input ty           
+         el>密钥 *</lab>API="apiKey"  <label for                
+  ">widthoup full-orm-gr class="f<div         
+                    v>
+   </di            >
+    select  </           >
+       on定义模型</opti">自stom"cuion value=<opt                       >
+ ion</optenAIzure Op">A"azurelue= vation    <op              
+      ></optionai">OpenAIue="openption val      <o                
+  ption>>请选择提供商</oue=""n val <optio                      uired>
+ " reqe="provider" namdert id="provi<selec                    </label>
+>服务提供商 *r"providel for="   <labe        
+         oup">rm-gr class="fo <div              
+                </div>
+             >
+    required" 配置名称older="请输入e" placeh"namme" name=d="configNa" i"text<input type=                  >
+  el/lab称 *<">配置名igNamefor="confbel       <la       ">
+       p-groulass="form   <div c       
+      form">ss="test-igForm" claonf<form id="c          >
+  AI服务</div">2. 配置titles="test-las civ    <d       
+ ">ectionest-slass="tv c <di   >
+    置表单 -- <!-- 配   
+        </div>
+v>
+           </didiv>
+            </
+         div>tus">未配置</er-staovidass="prv cl    <di        v>
+        义模型</dime">自定ovider-nass="pr claiv <d             m">
+      ustor="cata-provide" dvider-cardss="pro  <div cla             </div>
+             v>
+    ">未配置</diider-statusrovass="pv cl<di                    nAI</div>
+">Azure Opeer-name"providiv class=     <d             ">
+  ureder="az-provi-card" data"providerass=div cl  <          /div>
+              <     >
+ s">未配置</divtuovider-stav class="pr       <di      iv>
+       >OpenAI</dider-name"rovclass="pdiv        <        ai">
+     vider="open data-provider-card"="pro classdiv   <           ">
+  rdsider-carov"piv class= <d         /div>
+  AI服务提供商<tle">1. 选择"test-ti class=div <          on">
+ "test-sectiass=    <div cl     提供商选择 -->
+!--    <   
+    
+     h1>置修复测试</>AI配h1
+        <ner">ontai"cv class=dy>
+    <di/head>
+<bo</style>
+<  }
+      
+    666; color: #           2px;
+-size: 1        font    atus {
+r-stovide    .pr        }
+  5px;
+  gin-bottom:       mar00;
+      : 6font-weight           er-name {
+ .provid            }
+ f;
+   : #e6f7fndkgrou   bac        #409eff;
+ rder-color:       bo{
+      active rd.r-ca   .provide    }
+     
+    9ff;#f0fround:  backg         
+  9eff;color: #40  border-   {
+       ard:hover -c   .provider    }
+     
+    ter;en cxt-align:       tee;
+      eason: all 0.3snsiti     tra        pointer;
+rsor:         cu;
+   ius: 8pxrder-rad     bo
+       ed; #e4e7x solid  border: 2p     
+     px;dding: 15     pa   
+    er-card {    .provid }
+    x;
+        20prgin-bottom:          ma  gap: 15px;
+        
+    at(3, 1fr);mns: repeate-colupl   grid-tem      d;
+   ay: griispl      d      {
+ider-cards rov
+        .p
+        }#c53030;r:       colo  c4c4;
+    solid #fbborder: 1px             f0;
+ef0round: #f backg     r {
+      ult.erro    .res  }
+    6cc;
+      color: #006      
+      3d8ff;solid #b 1px rder:     boff;
+       f0f9ackground: #    b        
+ess {.succ     .result
+   
+        }e: pre-wrap;-spac    white       e: 12px;
+ iz-s    font
+        : monospace;nt-family    fo       4px;
+  rder-radius: bo         : 10px;
+       paddingpx;
+       in-top: 15      margt {
+      resul   .   }
+     
+     hite;: w       color
+     23c;nd: #e6a  backgrou
+           {ingtn-warn    .b   }
+        : white;
+  color     23a;
+      ound: #67c      backgr      s {
+n-succes    .bt     }
+     white;
+      color:;
+          #409effackground:           bprimary {
+ btn- .        }
+  ;
+     px 10gin-right:mar            ;
+4pxize: 1-snt     fo       ;
+sor: pointer        cur 4px;
+    der-radius:bor          none;
+    border:            16px;
+ing: 8px       padd    
+    .btn {  }
+     ff;
+      olor: #409e  border-c  
+        ;nenoine: tl      ous {
+      extarea:focu:focus, ts, selectput:focu       in
+    }
+     4px;ont-size: 1   f       : 4px;
+  ius-radder bor     ;
+      olid #dddder: 1px sor     b      px 12px;
+  padding: 8          {
+ ea xtarct, te, seleut    inp    }
+    555;
+    color: #         
+   x;ottom: 5p margin-b       500;
+    t: font-weigh          {
+      label             }
+: 1 / -1;
+olumnd-c    gri  {
+      width l-roup.ful    .form-g    }
+
+        mn;coluion:  flex-direct  
+         ex;splay: fl   di      {
+    group.form-          }
+      20px;
+ bottom:argin-           m
+ 15px;ap:   g        1fr 1fr;
+  e-columns: mplat    grid-te    grid;
+    ay:   displ   {
+       -form .test        }
+       ;
+ #333olor:            cpx;
+ n-bottom: 15gi     mar       ght: 600;
+   font-wei       
+  18px;size: ont-         f
+   -title {    .test           }
+ );
+,0,0.10,0ba(2px 8px rgx-shadow: 0           bo
+  us: 8px;radi   border-         ;
+bottom: 20pxgin-  mar         g: 20px;
+       paddin;
+      und: white backgro          
+ -section {   .test }
+     
+       n: 0 auto;     margi
+       : 1200px; max-width       iner {
+        .conta   }
+        f5;
+ : #f5f5background            ng: 20px;
+      paddi: 0;
+      argin       m;
+     serifs-oto, sanUI', Robont, 'Segoe ystemFMacSem, Blinkst-apple-syt-family:         fon    body {
+  yle>
+      e>
+    <st置修复测试</titlle>AI配   <tit
+ ">01.e=alinitial-scth, =device-wid"widthntent=iewport" coname="veta >
+    <mt="UTF-8"rseeta cha<m<head>
+    ">
+"zh-CN lang=tmltml>
+<h!DOCTYPE h<

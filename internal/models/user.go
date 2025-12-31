@@ -23,7 +23,8 @@ type User struct {
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
 
 	// 关联关系
-	Roles []Role `json:"roles" gorm:"many2many:user_roles;"`
+	Roles       []Role       `json:"roles" gorm:"many2many:user_roles;"`
+	Permissions []Permission `json:"permissions" gorm:"many2many:user_permissions;"`
 }
 
 // Role 角色模型
@@ -75,6 +76,14 @@ type RolePermission struct {
 	Permission   Permission `json:"permission" gorm:"foreignKey:PermissionID"`
 }
 
+// UserPermission 用户权限关联表（直接权限分配）
+type UserPermission struct {
+	UserID       uint       `json:"user_id" gorm:"primaryKey"`
+	PermissionID uint       `json:"permission_id" gorm:"primaryKey"`
+	User         User       `json:"user" gorm:"foreignKey:UserID"`
+	Permission   Permission `json:"permission" gorm:"foreignKey:PermissionID"`
+}
+
 // HashPassword 加密密码
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -99,6 +108,16 @@ func (u *User) SetPassword(password string) error {
 
 // HasPermission 检查用户是否有指定权限
 func (u *User) HasPermission(resource, action, scope string) bool {
+	// 检查直接分配的权限
+	for _, permission := range u.Permissions {
+		if permission.Resource == resource &&
+			permission.Action == action &&
+			(permission.Scope == scope || permission.Scope == "all") {
+			return true
+		}
+	}
+	
+	// 检查通过角色获得的权限
 	for _, role := range u.Roles {
 		for _, permission := range role.Permissions {
 			if permission.Resource == resource &&
@@ -116,6 +135,16 @@ func (u *User) GetPermissions() []Permission {
 	var permissions []Permission
 	permissionMap := make(map[string]bool)
 
+	// 添加直接分配的权限
+	for _, permission := range u.Permissions {
+		key := permission.Resource + ":" + permission.Action + ":" + permission.Scope
+		if !permissionMap[key] {
+			permissions = append(permissions, permission)
+			permissionMap[key] = true
+		}
+	}
+
+	// 添加通过角色获得的权限
 	for _, role := range u.Roles {
 		for _, permission := range role.Permissions {
 			key := permission.Resource + ":" + permission.Action + ":" + permission.Scope

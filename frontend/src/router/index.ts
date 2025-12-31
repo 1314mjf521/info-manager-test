@@ -55,7 +55,7 @@ const routes = [
         meta: {
           title: '创建记录',
           hidden: true,
-          permission: 'records:write'
+          permission: 'records:create'
         } as RouteMeta
       },
       {
@@ -75,7 +75,7 @@ const routes = [
         meta: {
           title: '编辑记录',
           hidden: true,
-          permission: 'records:write'
+          permission: 'records:update'
         } as RouteMeta
       },
       {
@@ -85,7 +85,7 @@ const routes = [
         meta: {
           title: '记录类型',
           icon: 'Collection',
-          permission: 'system:admin'
+          permission: 'record_types:read'
         } as RouteMeta
       },
       {
@@ -96,6 +96,74 @@ const routes = [
           title: '文件管理',
           icon: 'Folder',
           permission: 'files:read'
+        } as RouteMeta
+      },
+      {
+        path: 'tickets',
+        name: 'Tickets',
+        component: () => import('@/views/tickets/TicketListView.vue'),
+        meta: {
+          title: '工单管理',
+          icon: 'Tickets',
+          permission: 'ticket:read_own'
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/test',
+        name: 'TicketTest',
+        component: () => import('@/views/tickets/TicketTestView.vue'),
+        meta: {
+          title: '工单测试',
+          hidden: true
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/debug',
+        name: 'TicketDebug',
+        component: () => import('@/views/tickets/TicketTestSimple.vue'),
+        meta: {
+          title: '权限调试',
+          hidden: true
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/create',
+        name: 'TicketCreate',
+        component: () => import('@/views/tickets/TicketFormView.vue'),
+        meta: {
+          title: '创建工单',
+          hidden: true,
+          permission: 'ticket:create'
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/:id',
+        name: 'TicketDetail',
+        component: () => import('@/views/tickets/TicketDetailView.vue'),
+        meta: {
+          title: '工单详情',
+          hidden: true,
+          permission: 'ticket:read_own'
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/:id/assign',
+        name: 'TicketAssign',
+        component: () => import('@/views/tickets/TicketAssignView.vue'),
+        meta: {
+          title: '分配工单',
+          hidden: true,
+          permission: 'ticket:assign'
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/:id/edit',
+        name: 'TicketEdit',
+        component: () => import('@/views/tickets/TicketFormView.vue'),
+        meta: {
+          title: '编辑工单',
+          hidden: true,
+          permission: 'ticket:update_own'
         } as RouteMeta
       },
       {
@@ -125,7 +193,27 @@ const routes = [
         meta: {
           title: '角色管理',
           icon: 'UserFilled',
-          permission: 'system:admin'
+          permission: 'roles:read'
+        } as RouteMeta
+      },
+      {
+        path: 'permissions',
+        name: 'Permissions',
+        component: () => import('@/views/permissions/PermissionManagement.vue'),
+        meta: {
+          title: '权限管理',
+          icon: 'Key',
+          permission: 'permissions:read'
+        } as RouteMeta
+      },
+      {
+        path: 'ai',
+        name: 'AI',
+        component: () => import('@/views/ai/AIManagement.vue'),
+        meta: {
+          title: 'AI功能',
+          icon: 'Avatar',
+          permission: 'ai:features'
         } as RouteMeta
       },
       {
@@ -223,10 +311,32 @@ router.beforeEach(async (to, from, next) => {
   // 权限检查
   if (to.meta?.permission) {
     const permission = to.meta.permission as string
-    const [resource, action, scope = 'all'] = permission.split(':')
     console.log('检查权限:', permission)
     
-    if (!authStore.hasPermission(resource, action, scope)) {
+    let hasPermission = false
+    
+    // 直接检查用户是否有该权限
+    if (authStore.userPermissions.includes(permission)) {
+      hasPermission = true
+    } else {
+      // 支持两种权限格式：
+      // 1. 简单格式：ticket:view
+      // 2. 完整格式：resource:action:scope
+      if (permission.includes(':')) {
+        const parts = permission.split(':')
+        if (parts.length === 2) {
+          // 简单格式：resource:action
+          const [resource, action] = parts
+          hasPermission = authStore.hasPermission(resource, action, 'all')
+        } else if (parts.length === 3) {
+          // 完整格式：resource:action:scope
+          const [resource, action, scope] = parts
+          hasPermission = authStore.hasPermission(resource, action, scope)
+        }
+      }
+    }
+    
+    if (!hasPermission) {
       console.log('权限检查失败')
       ElMessage.error('没有权限访问该页面')
       next('/')

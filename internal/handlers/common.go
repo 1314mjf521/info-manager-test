@@ -98,7 +98,70 @@ func getUserID(c *gin.Context) uint {
 
 // hasPermission 检查用户是否有指定权限
 func hasPermission(c *gin.Context, permission string) bool {
-	// 这里应该实现权限检查逻辑
-	// 暂时返回true，实际应该检查用户权限
-	return true
+	userID := getUserID(c)
+	if userID == 0 {
+		return false
+	}
+
+	// 管理员用户（ID=1）拥有所有权限
+	if userID == 1 {
+		return true
+	}
+
+	// 获取用户角色
+	userRoles, exists := c.Get("user_roles")
+	if !exists {
+		return false
+	}
+
+	roles, ok := userRoles.([]string)
+	if !ok {
+		return false
+	}
+
+	// 检查是否是管理员角色
+	for _, role := range roles {
+		if role == "admin" || role == "系统管理员" || role == "administrator" {
+			return true
+		}
+	}
+
+	// 动态权限检查 - 从JWT token中获取用户权限
+	userPermissions, exists := c.Get("user_permissions")
+	if exists {
+		if permissions, ok := userPermissions.([]string); ok {
+			return contains(permissions, permission)
+		}
+	}
+
+	// 如果JWT中没有权限信息，使用硬编码的权限列表作为后备
+	// 对于tiker_user角色，检查数据库中实际分配的权限
+	if contains(roles, "tiker_user") || contains(roles, "ticker") {
+		// 工单申请人权限列表（与数据库权限保持一致）
+		tikerPermissions := []string{
+			// 工单权限（仅自己的）
+			"ticket:read_own", "ticket:create", "ticket:update_own", "ticket:delete_own",
+			"ticket:assign", "ticket:comment_read", "ticket:comment_write", 
+			"ticket:attachment_upload", "ticket:statistics",
+			// 注意：移除了 ticket:export 和 ticket:import，因为数据库中没有分配这些权限
+			// 文件权限
+			"files:read", "files:upload", "files:download",
+			// 记录权限（仅自己的）
+			"records:read_own", "records:create", "records:update_own", "records:delete_own",
+		}
+		return contains(tikerPermissions, permission)
+	}
+
+	// 其他角色默认拒绝
+	return false
+}
+
+// contains 检查字符串切片是否包含指定字符串
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

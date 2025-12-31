@@ -178,6 +178,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { http } from '@/utils/request'
 import { API_ENDPOINTS } from '@/config/api'
 import dayjs from 'dayjs'
+import { useEventBus } from '@/utils/eventBus'
 
 // 响应式数据
 const loading = ref(false)
@@ -187,6 +188,7 @@ const detailDialogVisible = ref(false)
 const editDialogVisible = ref(false)
 const currentUser = ref(null)
 const formRef = ref()
+const { emit } = useEventBus()
 
 const searchForm = reactive({
   username: '',
@@ -366,9 +368,13 @@ const handleSave = async () => {
     if (isEdit.value) {
       await http.put(`/users/${currentUser.value.id}`, userForm)
       ElMessage.success('用户更新成功')
+      // 触发用户更新事件
+      emit('user:updated')
     } else {
       await http.post('/users', userForm)
       ElMessage.success('用户创建成功')
+      // 触发用户创建事件
+      emit('user:created')
     }
     
     editDialogVisible.value = false
@@ -412,6 +418,8 @@ const handleDelete = async (row: any) => {
     await http.delete(`/users/${row.id}`)
     ElMessage.success('删除成功')
     fetchUsers()
+    // 触发用户删除事件
+    emit('user:deleted')
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除用户失败:', error)

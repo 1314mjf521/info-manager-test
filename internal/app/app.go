@@ -237,16 +237,24 @@ func (a *App) initRouter() {
 			permissions.POST("/check", a.permissionHandler.CheckPermission)
 			permissions.GET("/user/:user_id", a.permissionHandler.GetUserPermissions)
 			// 获取所有权限需要管理员权限
-			permissions.GET("", middleware.RequireSystemPermission(a.permissionService, "admin"), a.permissionHandler.GetAllPermissions)
-			// 获取权限树结构
-			permissions.GET("/tree", middleware.RequireSystemPermission(a.permissionService, "admin"), a.permissionHandler.GetPermissionTree)
+			permissions.GET("", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.GetAllPermissions)
+			// 获取权限树结构 - 允许所有认证用户访问（用于前端权限管理界面）
+			permissions.GET("/tree", a.permissionHandler.GetPermissionTree)
+			// 权限管理API（需要管理员权限）
+			permissions.POST("", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.CreatePermission)
+			permissions.PUT("/:id", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.UpdatePermission)
+			permissions.DELETE("/:id", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.DeletePermission)
+			// 初始化精细化权限数据
+			permissions.POST("/initialize", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.InitializePermissions)
+			// 初始化简化权限数据
+			permissions.POST("/initialize-simplified", middleware.RequireSystemPermission(a.permissionService, "manage"), a.permissionHandler.InitializeSimplifiedPermissions)
 		}
 
 		// 记录路由
 		records := v1.Group("/records")
 		records.Use(middleware.AuthMiddleware(a.authService))
 		records.Use(middleware.AuditMiddleware())
-		records.Use(middleware.RecordPermissionMiddleware(a.permissionService))
+		records.Use(middleware.RecordScopeMiddleware(a.permissionService))
 		{
 			records.GET("", a.recordHandler.GetRecords)
 			records.POST("", a.recordHandler.CreateRecord)
@@ -258,6 +266,49 @@ func (a *App) initRouter() {
 			records.DELETE("/batch", a.recordHandler.BatchDeleteRecords)
 			records.POST("/import", a.recordHandler.ImportRecords)
 			records.GET("/type/:type", a.recordHandler.GetRecordsByType)
+		}
+
+		// 工单路由
+		tickets := v1.Group("/tickets")
+		tickets.Use(middleware.AuthMiddleware(a.authService))
+		tickets.Use(middleware.AuditMiddleware())
+		{
+			tickets.GET("", a.ticketHandler.GetTickets)
+			tickets.POST("", a.ticketHandler.CreateTicket)
+			tickets.GET("/statistics", a.ticketHandler.GetTicketStatistics)
+			tickets.GET("/:id", a.ticketHandler.GetTicket)
+			tickets.PUT("/:id", a.ticketHandler.UpdateTicket)
+			tickets.DELETE("/:id", a.ticketHandler.DeleteTicket)
+			
+			// 工单导入导出
+			tickets.GET("/export", a.ticketHandler.ExportTickets)
+			tickets.POST("/import", a.ticketHandler.ImportTickets)
+			
+			// 工单流程管理
+			tickets.POST("/:id/assign", a.ticketHandler.AssignTicket)
+			tickets.PUT("/:id/status", a.ticketHandler.UpdateTicketStatus)
+			tickets.POST("/:id/accept", a.ticketHandler.AcceptTicket)
+			tickets.POST("/:id/reject", a.ticketHandler.RejectTicket)
+			tickets.POST("/:id/reopen", a.ticketHandler.ReopenTicket)
+			tickets.POST("/:id/resubmit", a.ticketHandler.ResubmitTicket)
+			
+			// 工单评论
+			tickets.GET("/:id/comments", a.ticketHandler.GetTicketComments)
+			tickets.POST("/:id/comments", a.ticketHandler.AddTicketComment)
+			
+			// 工单历史
+			tickets.GET("/:id/history", a.ticketHandler.GetTicketHistory)
+			
+			// 工单附件
+			tickets.POST("/:id/attachments", a.ticketHandler.UploadTicketAttachment)
+			tickets.DELETE("/:id/attachments/:attachment_id", a.ticketHandler.DeleteTicketAttachment)
+			
+			// 工单类型
+			tickets.GET("/categories", a.ticketHandler.GetTicketCategories)
+			
+			// 自动分配规则
+			tickets.GET("/assignment-rules", a.ticketHandler.GetAssignmentRules)
+			tickets.PUT("/assignment-rules", a.ticketHandler.UpdateAssignmentRules)
 		}
 
 		// 记录类型路由
@@ -311,7 +362,7 @@ func (a *App) initRouter() {
 		export.Use(middleware.ExportPermissionMiddleware(a.permissionService))
 		{
 			// 导出模板管理
-			export.GET("/templates", a.exportHandler.GetTemplates)
+			export.GET("/templates", middleware.RequireSystemPermission(a.permissionService, "manage"), a.exportHandler.GetTemplates)
 			export.POST("/templates", a.exportHandler.CreateTemplate)
 			export.GET("/templates/:id", a.exportHandler.GetTemplateByID)
 			export.PUT("/templates/:id", a.exportHandler.UpdateTemplate)
@@ -374,7 +425,7 @@ func (a *App) initRouter() {
 		ai.Use(middleware.AuditMiddleware())
 		{
 			// AI配置管理
-			ai.GET("/config", a.aiHandler.GetConfigs)
+			ai.GET("/config", middleware.RequirePermission(a.permissionService, "ai:config"), a.aiHandler.GetConfigs)
 			ai.POST("/config", a.aiHandler.CreateConfig)
 			ai.GET("/config/:id", a.aiHandler.GetConfig)
 			ai.PUT("/config/:id", a.aiHandler.UpdateConfig)
@@ -415,7 +466,7 @@ func (a *App) initRouter() {
 		announcements.Use(middleware.AuthMiddleware(a.authService))
 		announcements.Use(middleware.AuditMiddleware())
 		{
-			announcements.GET("", a.systemHandler.GetAnnouncements)
+			announcements.GET("", middleware.RequirePermission(a.permissionService, "system:announcements_read"), a.systemHandler.GetAnnouncements)
 			announcements.POST("", middleware.RequireSystemPermission(a.permissionService, "admin"), a.systemHandler.CreateAnnouncement)
 			announcements.GET("/:id", a.systemHandler.GetAnnouncementByID)
 			announcements.PUT("/:id", a.systemHandler.UpdateAnnouncement)
@@ -427,11 +478,17 @@ func (a *App) initRouter() {
 		system := v1.Group("/system")
 		system.Use(middleware.AuthMiddleware(a.authService))
 		{
-			// 健康检查（所有用户可访问）
-			system.GET("/health", a.systemHandler.GetSystemHealth)
+			// 健康检查（需要管理员权限）
+			system.GET("/health", middleware.RequireSystemPermission(a.permissionService, "manage"), a.systemHandler.GetSystemHealth)
+
+			// 获取用户列表（用于Token创建，所有登录用户可访问）
+			system.GET("/users", a.systemHandler.GetUsersForToken)
+
+			// 系统统计信息（需要管理员权限）
+			system.GET("/stats", middleware.RequireSystemPermission(a.permissionService, "manage"), a.systemHandler.GetSystemStats)
 
 			// 系统指标（需要管理员权限）
-			system.GET("/metrics", middleware.RequireSystemPermission(a.permissionService, "admin"), a.systemHandler.GetSystemMetrics)
+			system.GET("/metrics", middleware.RequireSystemPermission(a.permissionService, "manage"), a.systemHandler.GetSystemMetrics)
 		}
 
 		// 日志路由

@@ -71,6 +71,7 @@ type RecordResponse struct {
 	Title     string                 `json:"title"`
 	Content   map[string]interface{} `json:"content"`
 	Tags      []string               `json:"tags"`
+	Status    string                 `json:"status"`
 	CreatedBy uint                   `json:"created_by"`
 	Creator   string                 `json:"creator"`
 	Version   int                    `json:"version"`
@@ -445,46 +446,54 @@ func (s *RecordService) ImportRecords(req *ImportRecordsRequest, userID uint, ip
 	var results []RecordResponse
 	var errors []string
 
-	// 验证记录类型
+	// 预先验证记录类型
 	if err := s.recordTypeService.ValidateRecordData(req.Type, map[string]interface{}{"test": "test"}); err != nil {
 		return nil, fmt.Errorf("记录类型验证失败: %w", err)
 	}
 
-	// 动态调整批次大小，从小批次开始
-	initialBatchSize := 5
-	maxBatchSize := 20
-	currentBatchSize := initialBatchSize
-	consecutiveFailures := 0
+	// 预先获取用户信息，避免在循环中重复查询
+	var user models.User
+	if err := s.db.Select("id, username").First(&user, userID).Error; err != nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
 
-	for i := 0; i < len(req.Records); {
-		// 根据失败情况动态调整批次大小
-		if consecutiveFailures > 2 {
-			currentBatchSize = max(2, currentBatchSize/2) // 减小批次
-		} else if consecutiveFailures == 0 && currentBatchSize < maxBatchSize {
-			currentBatchSize = min(maxBatchSize, currentBatchSize+2) // 增大批次
-		}
+	// 对于SQLite，使用更小的批次大小以避免锁定问题
+	batchSize := 3 // SQLite适合的小批次
+	maxRetries := 3
 
-		end := i + currentBatchSize
+	// 分批处理记录
+	for i := 0; i < len(req.Records); i += batchSize {
+		end := i + batchSize
 		if end > len(req.Records) {
 			end = len(req.Records)
 		}
 
 		batch := req.Records[i:end]
-		batchResults, batchErrors := s.importRecordBatch(batch, req.Type, userID, ipAddress, userAgent)
-
-		if len(batchErrors) > 0 {
-			consecutiveFailures++
-			errors = append(errors, batchErrors...)
-		} else {
-			consecutiveFailures = 0
+		
+		// 重试机制处理批次
+		var batchResults []RecordResponse
+		var batchErrors []string
+		
+		for retry := 0; retry < maxRetries; retry++ {
+			batchResults, batchErrors = s.importRecordBatchOptimized(batch, req.Type, userID, ipAddress, userAgent, i+1)
+			
+			// 如果成功或者不是数据库锁定错误，跳出重试
+			if len(batchErrors) == 0 || !s.isDatabaseBusyError(batchErrors) {
+				break
+			}
+			
+			// 等待后重试
+			time.Sleep(time.Duration(retry+1) * 100 * time.Millisecond)
 		}
 
 		results = append(results, batchResults...)
-		i = end
+		if len(batchErrors) > 0 {
+			errors = append(errors, batchErrors...)
+		}
 
-		// 批次间添加短暂延迟，减少数据库压力
-		if i < len(req.Records) {
-			time.Sleep(10 * time.Millisecond)
+		// 批次间短暂延迟，让SQLite有时间处理
+		if end < len(req.Records) {
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 
@@ -493,6 +502,18 @@ func (s *RecordService) ImportRecords(req *ImportRecordsRequest, userID uint, ip
 	}
 
 	return results, nil
+}
+
+// isDatabaseBusyError 检查是否是数据库忙碌错误
+func (s *RecordService) isDatabaseBusyError(errors []string) bool {
+	for _, err := range errors {
+		if strings.Contains(err, "database is locked") || 
+		   strings.Contains(err, "context deadline exceeded") ||
+		   strings.Contains(err, "database is busy") {
+			return true
+		}
+	}
+	return false
 }
 
 // min 和 max 辅助函数
@@ -510,7 +531,116 @@ func max(a, b int) int {
 	return b
 }
 
-// importRecordBatch 导入记录批次，优化事务处理和错误恢复
+// importRecordBatchOptimized 优化的批次导入方法
+func (s *RecordService) importRecordBatchOptimized(records []map[string]interface{}, recordType string, userID uint, ipAddress, userAgent string, startIndex int) ([]RecordResponse, []string) {
+	var results []RecordResponse
+	var errors []string
+
+	// 使用更短的超时时间，适合SQLite
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// 预处理和验证所有记录
+	validRecords := make([]models.Record, 0, len(records))
+	for i, recordData := range records {
+		// 提取标题
+		title, ok := recordData["title"].(string)
+		if !ok || title == "" {
+			errors = append(errors, fmt.Sprintf("记录 %d: 缺少标题", startIndex+i))
+			continue
+		}
+
+		// 移除title，剩余的作为content
+		content := make(map[string]interface{})
+		for k, v := range recordData {
+			if k != "title" && k != "tags" {
+				content[k] = v
+			}
+		}
+
+		// 验证数据
+		if err := s.recordTypeService.ValidateRecordData(recordType, content); err != nil {
+			errors = append(errors, fmt.Sprintf("记录 %d: %v", startIndex+i, err))
+			continue
+		}
+
+		// 提取标签
+		var tags []string
+		if tagsData, exists := recordData["tags"]; exists && tagsData != nil {
+			if tagsList, ok := tagsData.([]interface{}); ok {
+				for _, tag := range tagsList {
+					if tagStr, ok := tag.(string); ok {
+						tags = append(tags, tagStr)
+					}
+				}
+			}
+		}
+
+		record := models.Record{
+			Type:      recordType,
+			Title:     title,
+			Content:   models.JSONB(content),
+			Tags:      tags,
+			CreatedBy: userID,
+			Status:    "draft",
+			Version:   1,
+		}
+
+		validRecords = append(validRecords, record)
+	}
+
+	// 如果没有有效记录，直接返回
+	if len(validRecords) == 0 {
+		return results, errors
+	}
+
+	// 使用事务批量插入
+	tx := s.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		errors = append(errors, fmt.Sprintf("批次导入失败: 开始事务失败 - %v", tx.Error))
+		return results, errors
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
+
+	// 批量创建记录
+	if err := tx.Create(&validRecords).Error; err != nil {
+		tx.Rollback()
+		errors = append(errors, fmt.Sprintf("批次导入失败: %v", err))
+		return results, errors
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		errors = append(errors, fmt.Sprintf("批次导入失败: 提交事务失败 - %v", err))
+		return results, errors
+	}
+
+	// 构建返回结果
+	for _, record := range validRecords {
+		results = append(results, RecordResponse{
+			ID:        record.ID,
+			Type:      record.Type,
+			Title:     record.Title,
+			Content:   map[string]interface{}(record.Content),
+			Tags:      record.Tags,
+			Status:    record.Status,
+			CreatedBy: record.CreatedBy,
+			CreatedAt: record.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt: record.UpdatedAt.Format("2006-01-02 15:04:05"),
+			Version:   record.Version,
+		})
+	}
+
+	return results, errors
+}
+
+// importRecordBatch 导入记录批次，优化事务处理和错误恢复（保留原方法以兼容）
 func (s *RecordService) importRecordBatch(records []map[string]interface{}, recordType string, userID uint, ipAddress, userAgent string) ([]RecordResponse, []string) {
 	var results []RecordResponse
 	var errors []string

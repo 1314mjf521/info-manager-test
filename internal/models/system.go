@@ -156,3 +156,45 @@ type SystemMaintenance struct {
 	// 关联
 	Creator User `json:"creator,omitempty" gorm:"foreignKey:CreatedBy"`
 }
+
+// APIToken API访问令牌
+type APIToken struct {
+	ID          uint           `json:"id" gorm:"primaryKey"`
+	Name        string         `json:"name" gorm:"size:100;not null"`                    // Token名称
+	Token       string         `json:"token" gorm:"size:255;not null;uniqueIndex"`      // Token值
+	UserID      uint           `json:"user_id" gorm:"not null;index"`                   // 所属用户
+	Scope       string         `json:"scope" gorm:"size:50;not null;default:'read'"`    // 权限范围: read, write, admin
+	Status      string         `json:"status" gorm:"size:20;not null;default:'active'"` // 状态: active, disabled
+	Description string         `json:"description" gorm:"type:text"`                    // 描述
+	ExpiresAt   *time.Time     `json:"expires_at"`                                      // 过期时间，null表示永不过期
+	LastUsedAt  *time.Time     `json:"last_used_at"`                                    // 最后使用时间
+	UsageCount  int64          `json:"usage_count" gorm:"default:0"`                    // 使用次数
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
+
+	// 关联
+	User         User                `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	UsageHistory []APITokenUsageLog  `json:"usage_history,omitempty" gorm:"foreignKey:TokenID"`
+}
+
+// APITokenUsageLog API Token使用日志
+type APITokenUsageLog struct {
+	ID         uint      `json:"id" gorm:"primaryKey"`
+	TokenID    uint      `json:"token_id" gorm:"not null;index"`                 // Token ID
+	Method     string    `json:"method" gorm:"size:10;not null"`                 // HTTP方法: GET, POST, PUT, DELETE
+	Path       string    `json:"path" gorm:"size:500;not null"`                  // 请求路径
+	IPAddress  string    `json:"ip_address" gorm:"size:45;not null;index"`       // 客户端IP
+	UserAgent  string    `json:"user_agent" gorm:"size:1000"`                    // 用户代理
+	StatusCode int       `json:"status_code" gorm:"not null;index"`              // HTTP状态码
+	Duration   int       `json:"duration" gorm:"default:0"`                      // 请求耗时（毫秒）
+	RequestID  string    `json:"request_id" gorm:"size:100;index"`               // 请求ID
+	CreatedAt  time.Time `json:"created_at" gorm:"not null;index"`
+
+	// 关联
+	Token APIToken `json:"token,omitempty" gorm:"foreignKey:TokenID"`
+
+	// 索引
+	_ struct{} `gorm:"index:idx_token_created,token_id,created_at"`
+	_ struct{} `gorm:"index:idx_ip_created,ip_address,created_at"`
+}

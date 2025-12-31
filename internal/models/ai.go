@@ -14,10 +14,28 @@ type AIConfig struct {
 	APIEndpoint string         `json:"api_endpoint" gorm:"size:500"`
 	Model       string         `json:"model" gorm:"size:100"`                   // gpt-4, gpt-3.5-turbo, etc.
 	Config      string         `json:"config" gorm:"type:text"`                 // JSON格式的额外配置
+	
+	// 新增功能分类和用途标签
+	Categories  string         `json:"categories" gorm:"type:text"`             // JSON数组: ["chat", "optimize", "speech", "image"]
+	Tags        string         `json:"tags" gorm:"type:text"`                   // JSON数组: ["production", "development", "fast", "accurate"]
+	Description string         `json:"description" gorm:"size:500"`             // 配置描述
+	Priority    int            `json:"priority" gorm:"default:1;index"`         // 优先级 1-10，数字越大优先级越高
+	
+	// 性能和限制配置
 	IsActive    bool           `json:"is_active" gorm:"default:true"`
 	IsDefault   bool           `json:"is_default" gorm:"default:false"`
 	MaxTokens   int            `json:"max_tokens" gorm:"default:4000"`
 	Temperature float32        `json:"temperature" gorm:"default:0.7"`
+	
+	// 使用限制
+	DailyLimit    int          `json:"daily_limit" gorm:"default:0"`            // 每日使用限制，0表示无限制
+	MonthlyLimit  int          `json:"monthly_limit" gorm:"default:0"`          // 每月使用限制，0表示无限制
+	CostPerToken  float64      `json:"cost_per_token" gorm:"default:0"`         // 每token成本
+	
+	// 状态字段
+	Status        string       `json:"status" gorm:"size:20;default:'active'"` // active, inactive, testing, deprecated
+	LastTestedAt  *time.Time   `json:"last_tested_at"`                         // 最后测试时间
+	
 	CreatedBy   uint           `json:"created_by" gorm:"not null;index"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`

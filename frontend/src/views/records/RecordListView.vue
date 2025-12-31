@@ -348,9 +348,11 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Plus, Refresh, Document, ArrowDown, Upload, UploadFilled } from '@element-plus/icons-vue'
 import { http } from '@/utils/request'
 import { API_ENDPOINTS } from '@/config/api'
+import { useEventBus } from '@/utils/eventBus'
 import dayjs from 'dayjs'
 
 const router = useRouter()
+const { emit } = useEventBus()
 
 // 响应式数据
 const loading = ref(false)
@@ -582,6 +584,11 @@ const handleImportRecords = async () => {
     removeRecordFile()
     fetchRecords()
     
+    // 如果有成功导入的记录，触发仪表盘刷新事件
+    if (successCount > 0) {
+      emit('record:created')
+    }
+    
   } catch (error) {
     console.error('导入记录失败:', error)
     ElMessage.error('Import records failed: ' + (error.message || 'Unknown error'))
@@ -796,6 +803,8 @@ const handleDelete = async (row: any) => {
     await http.delete(API_ENDPOINTS.RECORDS.DELETE(row.id))
     ElMessage.success('删除成功')
     fetchRecords()
+    // 触发仪表盘刷新事件
+    emit('record:deleted')
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除记录失败:', error)

@@ -19,7 +19,7 @@ func ExportPermissionMiddleware(permissionService *services.PermissionService) g
 		req := &services.PermissionCheckRequest{
 			UserID:   userID,
 			Resource: "export",
-			Action:   "read",
+			Action:   "manage",
 			Scope:    "all",
 		}
 		

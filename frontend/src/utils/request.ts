@@ -4,6 +4,19 @@ import { useAuthStore } from '@/stores/auth'
 import { API_CONFIG } from '@/config/api'
 import router from '@/router'
 
+// 重试配置
+const RETRY_CONFIG = {
+  maxRetries: 2,
+  retryDelay: 1000,
+  retryCondition: (error: any) => {
+    // 只对网络错误和5xx错误进行重试
+    return !error.response || (error.response.status >= 500 && error.response.status < 600)
+  }
+}
+
+// 延迟函数
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 // 创建axios实例
 const request: AxiosInstance = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}${API_CONFIG.VERSION}`,
@@ -57,7 +70,7 @@ request.interceptors.response.use(
     }
     
     // 请求成功
-    if (status === 200 || status === 201) {
+    if (status >= 200 && status < 300) {
       // 后端返回格式: { success: true, data: {...} }
       if (data.success !== undefined) {
         // 返回完整的响应，让调用方处理
@@ -72,8 +85,24 @@ request.interceptors.response.use(
     return Promise.reject(new Error(data.message || '请求失败'))
   },
   async (error) => {
-    const { response, message } = error
+    const { response, message, config } = error
     const authStore = useAuthStore()
+    
+    // 重试逻辑
+    if (RETRY_CONFIG.retryCondition(error) && config && !config.__retryCount) {
+      config.__retryCount = 0
+    }
+    
+    if (config && config.__retryCount < RETRY_CONFIG.maxRetries) {
+      config.__retryCount += 1
+      
+      if (API_CONFIG.DEBUG) {
+        console.log(`请求重试 ${config.__retryCount}/${RETRY_CONFIG.maxRetries}:`, config.url)
+      }
+      
+      await delay(RETRY_CONFIG.retryDelay * config.__retryCount)
+      return request(config)
+    }
     
     if (response) {
       const { status, data } = response
@@ -129,7 +158,7 @@ request.interceptors.response.use(
           break
           
         case 500:
-          errorMessage = '服务器内部错误'
+          errorMessage = '服务器内部错误，请稍后重试'
           ElMessage.error(errorMessage)
           break
           
@@ -138,9 +167,9 @@ request.interceptors.response.use(
           ElMessage.error(errorMessage)
       }
     } else if (message.includes('timeout')) {
-      ElMessage.error('请求超时，请检查网络连接')
+      ElMessage.error('请求超时，服务器响应较慢，请稍后重试')
     } else if (message.includes('Network Error')) {
-      ElMessage.error('网络连接失败，请检查网络')
+      ElMessage.error('网络连接失败，请检查网络连接')
     } else {
       ElMessage.error('请求失败，请稍后重试')
     }

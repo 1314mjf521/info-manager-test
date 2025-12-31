@@ -255,17 +255,41 @@ const handleExport = async () => {
   
   exporting.value = true
   try {
+    // 构建符合后端期望的数据结构
+    const filters: Record<string, string> = {}
+    
+    // 处理时间范围
+    if (exportForm.dateRange && exportForm.dateRange.length === 2) {
+      filters.start_time = exportForm.dateRange[0]
+      filters.end_time = exportForm.dateRange[1]
+    }
+    
+    // 处理自定义筛选条件
+    if (exportForm.filters) {
+      try {
+        const customFilters = JSON.parse(exportForm.filters)
+        Object.assign(filters, customFilters)
+      } catch (e) {
+        console.warn('筛选条件JSON格式错误，已忽略')
+      }
+    }
+    
     const data = {
       format: exportForm.format,
-      dataType: exportForm.dataType,
-      dateRange: exportForm.dateRange,
-      filters: exportForm.filters ? JSON.parse(exportForm.filters) : {},
-      fields: exportForm.fields
+      task_name: `${exportForm.dataType}_export_${new Date().getTime()}`,
+      filters: filters,
+      fields: exportForm.fields,
+      config: {
+        data_type: exportForm.dataType,
+        date_range: exportForm.dateRange
+      }
     }
+    
+    console.log('发送导出请求:', data)
     
     const response = await http.post(API_ENDPOINTS.EXPORT.RECORDS, data)
     
-    if (response.taskId) {
+    if (response.success && response.data) {
       ElMessage.success('导出任务已创建，请在导出历史中查看进度')
       fetchExportHistory()
     } else {
@@ -273,7 +297,13 @@ const handleExport = async () => {
     }
   } catch (error: any) {
     console.error('导出失败:', error)
-    ElMessage.error(error.message || '导出失败')
+    let errorMessage = '导出失败'
+    if (error.response?.data?.error?.message) {
+      errorMessage = error.response.data.error.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    ElMessage.error(errorMessage)
   } finally {
     exporting.value = false
   }
@@ -294,60 +324,73 @@ const handleReset = () => {
 const fetchExportHistory = async () => {
   historyLoading.value = true
   try {
-    const response = await http.get(API_ENDPOINTS.EXPORT.FILES)
+    // 获取导出任务列表
+    const response = await http.get(API_ENDPOINTS.EXPORT.TASKS)
     
-    if (response.items) {
-      exportHistory.value = response.items
+    if (response.success && response.data && response.data.tasks) {
+      // 转换后端数据格式为前端期望的格式
+      exportHistory.value = response.data.tasks.map((task: any) => ({
+        id: task.id,
+        format: task.format,
+        dataType: task.config ? JSON.parse(task.config).data_type || 'records' : 'records',
+        status: task.status,
+        progress: task.progress || 0,
+        fileUrl: task.status === 'completed' && task.file_path ? 
+          `/export/files/${task.id}/download` : null,
+        createdAt: task.created_at,
+        taskName: task.task_name,
+        totalRecords: task.total_records,
+        processedRecords: task.processed_records,
+        errorMessage: task.error_message
+      }))
     } else {
-      // 使用模拟数据
-      exportHistory.value = [
-        {
-          id: 1,
-          format: 'excel',
-          dataType: 'records',
-          status: 'completed',
-          progress: 100,
-          fileUrl: '/api/v1/export/files/1/download',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          format: 'pdf',
-          dataType: 'files',
-          status: 'processing',
-          progress: 65,
-          fileUrl: null,
-          createdAt: new Date(Date.now() - 300000).toISOString()
-        }
-      ]
+      exportHistory.value = []
     }
   } catch (error) {
     console.error('获取导出历史失败:', error)
-    // 使用模拟数据
-    exportHistory.value = [
-      {
-        id: 1,
-        format: 'excel',
-        dataType: 'records',
-        status: 'completed',
-        progress: 100,
-        fileUrl: '/api/v1/export/files/1/download',
-        createdAt: new Date().toISOString()
-      }
-    ]
-    ElMessage.warning('使用模拟数据，请检查后端API连接')
+    ElMessage.error('获取导出历史失败')
+    exportHistory.value = []
   } finally {
     historyLoading.value = false
   }
 }
 
+// 获取正确的文件扩展名
+const getFileExtension = (format: string) => {
+  const extensionMap: { [key: string]: string } = {
+    'excel': 'xlsx',
+    'pdf': 'pdf',
+    'csv': 'csv',
+    'json': 'json'
+  }
+  return extensionMap[format] || format
+}
+
 // 下载导出文件
-const handleDownload = (row: any) => {
-  if (row.fileUrl) {
+const handleDownload = async (row: any) => {
+  if (!row.fileUrl) return
+  
+  try {
+    // 使用带认证的请求下载文件
+    const response = await http.get(row.fileUrl, {
+      responseType: 'blob'
+    })
+    
+    // 创建下载链接
+    const blob = new Blob([response])
+    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = row.fileUrl
-    link.download = `export_${row.id}.${row.format}`
+    link.href = url
+    link.download = `export_${row.id}.${getFileExtension(row.format)}`
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('文件下载成功')
+  } catch (error) {
+    console.error('下载文件失败:', error)
+    ElMessage.error('下载文件失败')
   }
 }
 
@@ -369,8 +412,8 @@ const fetchTemplates = async () => {
   try {
     const response = await http.get(API_ENDPOINTS.EXPORT.TEMPLATES)
     
-    if (response.items) {
-      templates.value = response.items
+    if (response.success && response.data && response.data.templates) {
+      templates.value = response.data.templates
     } else {
       // 使用模拟数据
       templates.value = [

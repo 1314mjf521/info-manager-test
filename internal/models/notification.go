@@ -72,6 +72,34 @@ type NotificationChannel struct {
 	Creator User `json:"creator,omitempty" gorm:"foreignKey:CreatedBy"`
 }
 
+// WechatConfig 企业微信配置结构
+type WechatConfig struct {
+	WebhookURL string `json:"webhook_url"`
+	Secret     string `json:"secret,omitempty"`
+}
+
+// NotificationRule 通知规则模型
+type NotificationRule struct {
+	ID          uint           `json:"id" gorm:"primaryKey"`
+	Name        string         `json:"name" gorm:"not null;size:200"`
+	Description string         `json:"description" gorm:"size:500"`
+	EventType   string         `json:"event_type" gorm:"not null;size:100"` // ticket_created, ticket_assigned, etc.
+	Conditions  string         `json:"conditions" gorm:"type:text"`         // JSON格式的条件
+	ChannelID   uint           `json:"channel_id" gorm:"not null;index"`
+	TemplateID  uint           `json:"template_id" gorm:"not null;index"`
+	Recipients  string         `json:"recipients" gorm:"type:text"`         // JSON格式的收件人列表
+	IsActive    bool           `json:"is_active" gorm:"default:true"`
+	CreatedBy   uint           `json:"created_by" gorm:"not null;index"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+
+	// 关联关系
+	Channel  NotificationChannel  `json:"channel" gorm:"foreignKey:ChannelID"`
+	Template NotificationTemplate `json:"template" gorm:"foreignKey:TemplateID"`
+	Creator  User                 `json:"creator" gorm:"foreignKey:CreatedBy"`
+}
+
 // AlertRule 告警规则
 type AlertRule struct {
 	ID          uint           `json:"id" gorm:"primaryKey"`

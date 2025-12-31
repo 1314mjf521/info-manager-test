@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -71,6 +72,30 @@ type SystemConfigListResponse struct {
 	Total    int64                 `json:"total"`
 	Page     int                   `json:"page"`
 	PageSize int                   `json:"page_size"`
+}
+
+// Token相关请求结构
+type TokenCreateRequest struct {
+	Name        string `json:"name" binding:"required"`
+	UserID      uint   `json:"user_id" binding:"required"`
+	Scope       string `json:"scope" binding:"required"`
+	ExpiresIn   int    `json:"expires_in"` // 过期时间（小时），0表示永不过期
+	Description string `json:"description"`
+}
+
+type TokenListResponse struct {
+	Tokens   []models.APIToken `json:"tokens"`
+	Total    int64             `json:"total"`
+	Page     int               `json:"page"`
+	PageSize int               `json:"page_size"`
+	Stats    TokenStats        `json:"stats"`
+}
+
+type TokenStats struct {
+	Total     int64 `json:"total"`
+	Active    int64 `json:"active"`
+	Expired   int64 `json:"expired"`
+	TodayUsed int64 `json:"today_used"`
 }
 
 type AnnouncementListResponse struct {
@@ -463,6 +488,9 @@ func (s *SystemService) GetPublicAnnouncements(page, pageSize int, isActive *boo
 	// 只显示活跃的公告
 	if isActive != nil {
 		query = query.Where("is_active = ?", *isActive)
+	} else {
+		// 默认只显示活跃的公告
+		query = query.Where("is_active = ?", true)
 	}
 
 	// 时间过滤（只显示当前有效的公告）
@@ -483,6 +511,8 @@ func (s *SystemService) GetPublicAnnouncements(page, pageSize int, isActive *boo
 		Find(&announcements).Error; err != nil {
 		return nil, fmt.Errorf("获取公告列表失败: %v", err)
 	}
+
+
 
 	return &AnnouncementListResponse{
 		Announcements: announcements,
@@ -568,6 +598,19 @@ func (s *SystemService) DeleteAnnouncement(id, userID uint, hasAllPermission boo
 	}
 
 	return nil
+}
+
+// GetAnnouncementByID 根据ID获取公告
+func (s *SystemService) GetAnnouncementByID(id uint) (*models.Announcement, error) {
+	var announcement models.Announcement
+	if err := s.db.Preload("Creator").First(&announcement, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("公告不存在")
+		}
+		return nil, fmt.Errorf("获取公告失败: %v", err)
+	}
+
+	return &announcement, nil
 }
 
 // MarkAnnouncementAsViewed 标记公告为已查看
@@ -928,4 +971,804 @@ func (s *SystemService) LogSystemEvent(level, category, message string, context 
 	}
 
 	return s.db.Create(log).Error
+}
+
+// Token管理相关方法
+
+// CreateToken 创建API Token
+func (s *SystemService) CreateToken(req *TokenCreateRequest, createdBy uint) (*models.APIToken, error) {
+	// 生成随机Token
+	tokenValue, err := s.generateRandomToken()
+	if err != nil {
+		return nil, fmt.Errorf("生成Token失败: %w", err)
+	}
+
+	// 计算过期时间
+	var expiresAt *time.Time
+	if req.ExpiresIn > 0 {
+		expiry := time.Now().Add(time.Duration(req.ExpiresIn) * time.Hour)
+		expiresAt = &expiry
+	}
+
+	token := &models.APIToken{
+		Name:        req.Name,
+		Token:       tokenValue,
+		UserID:      req.UserID,
+		Scope:       req.Scope,
+		Description: req.Description,
+		ExpiresAt:   expiresAt,
+		Status:      "active",
+	}
+
+	if err := s.db.Create(token).Error; err != nil {
+		return nil, fmt.Errorf("创建Token失败: %w", err)
+	}
+
+	// 预加载用户信息
+	s.db.Preload("User").First(token, token.ID)
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("创建API Token: %s", req.Name),
+		map[string]interface{}{
+			"token_id":   token.ID,
+			"token_name": req.Name,
+			"user_id":    req.UserID,
+			"scope":      req.Scope,
+		}, &createdBy, "", "", "")
+
+	return token, nil
+}
+
+// GetTokens 获取Token列表
+func (s *SystemService) GetTokens(page, pageSize int, userID uint, status string) (*TokenListResponse, error) {
+	var tokens []models.APIToken
+	var total int64
+
+	query := s.db.Model(&models.APIToken{}).Preload("User")
+
+	// 用户过滤
+	if userID > 0 {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	// 状态过滤
+	if status != "" {
+		if status == "expired" {
+			query = query.Where("expires_at IS NOT NULL AND expires_at < ?", time.Now())
+		} else {
+			query = query.Where("status = ?", status)
+		}
+	}
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("获取Token总数失败: %w", err)
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&tokens).Error; err != nil {
+		return nil, fmt.Errorf("获取Token列表失败: %w", err)
+	}
+
+	// 计算统计信息
+	stats, err := s.getTokenStats(userID)
+	if err != nil {
+		return nil, fmt.Errorf("获取Token统计信息失败: %w", err)
+	}
+
+	return &TokenListResponse{
+		Tokens:   tokens,
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+		Stats:    *stats,
+	}, nil
+}
+
+// getTokenStats 获取Token统计信息
+func (s *SystemService) getTokenStats(userID uint) (*TokenStats, error) {
+	var stats TokenStats
+	
+	baseQuery := s.db.Model(&models.APIToken{})
+	if userID > 0 {
+		baseQuery = baseQuery.Where("user_id = ?", userID)
+	}
+
+	// 总数
+	if err := baseQuery.Count(&stats.Total).Error; err != nil {
+		return nil, err
+	}
+
+	// 活跃Token数
+	if err := baseQuery.Where("status = ?", "active").Count(&stats.Active).Error; err != nil {
+		return nil, err
+	}
+
+	// 过期Token数
+	now := time.Now()
+	if err := baseQuery.Where("expires_at IS NOT NULL AND expires_at < ?", now).Count(&stats.Expired).Error; err != nil {
+		return nil, err
+	}
+
+	// 今日使用的Token数
+	today := time.Now().Truncate(24 * time.Hour)
+	if err := baseQuery.Where("last_used_at >= ?", today).Count(&stats.TodayUsed).Error; err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+// RenewToken 续期Token
+func (s *SystemService) RenewToken(tokenID uint, expiresIn int, userID uint) error {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("Token不存在")
+		}
+		return fmt.Errorf("查询Token失败: %w", err)
+	}
+
+	// 检查Token状态
+	if token.Status != "active" {
+		return fmt.Errorf("Token状态异常，无法续期")
+	}
+
+	// 计算新的过期时间
+	var expiresAt *time.Time
+	if expiresIn > 0 {
+		expiry := time.Now().Add(time.Duration(expiresIn) * time.Hour)
+		expiresAt = &expiry
+	}
+
+	// 更新过期时间
+	if err := s.db.Model(&token).Update("expires_at", expiresAt).Error; err != nil {
+		return fmt.Errorf("续期Token失败: %w", err)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("续期API Token: %s", token.Name),
+		map[string]interface{}{
+			"token_id":   tokenID,
+			"expires_in": expiresIn,
+			"old_expires_at": token.ExpiresAt,
+			"new_expires_at": expiresAt,
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// RevokeToken 撤销Token
+func (s *SystemService) RevokeToken(tokenID uint, userID uint) error {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		return fmt.Errorf("Token不存在: %w", err)
+	}
+
+	// 软删除Token
+	if err := s.db.Delete(&token).Error; err != nil {
+		return fmt.Errorf("撤销Token失败: %w", err)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("撤销API Token: %s", token.Name),
+		map[string]interface{}{
+			"token_id": tokenID,
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// ValidateAPIToken 验证API Token
+func (s *SystemService) ValidateAPIToken(tokenValue string) (*models.APIToken, error) {
+	var token models.APIToken
+	if err := s.db.Preload("User").Where("token = ? AND status = 'active'", tokenValue).First(&token).Error; err != nil {
+		return nil, fmt.Errorf("无效的Token")
+	}
+
+	// 检查是否过期
+	if token.ExpiresAt != nil && token.ExpiresAt.Before(time.Now()) {
+		return nil, fmt.Errorf("Token已过期")
+	}
+
+	// 更新使用统计
+	s.db.Model(&token).Updates(map[string]interface{}{
+		"last_used_at": time.Now(),
+		"usage_count":  gorm.Expr("usage_count + 1"),
+	})
+
+	return &token, nil
+}
+
+// generateRandomToken 生成随机Token
+func (s *SystemService) generateRandomToken() (string, error) {
+	// 生成32字节的随机数据
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	
+	// 转换为hex字符串
+	return fmt.Sprintf("api_%x", bytes), nil
+}
+// DisableToken 禁用Token
+func (s *SystemService) DisableToken(tokenID uint, userID uint) error {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("Token不存在")
+		}
+		return fmt.Errorf("查询Token失败: %w", err)
+	}
+
+	// 更新Token状态
+	if err := s.db.Model(&token).Update("status", "disabled").Error; err != nil {
+		return fmt.Errorf("禁用Token失败: %w", err)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("禁用API Token: %s", token.Name),
+		map[string]interface{}{
+			"token_id": tokenID,
+			"action":   "disable",
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// EnableToken 启用Token
+func (s *SystemService) EnableToken(tokenID uint, userID uint) error {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("Token不存在")
+		}
+		return fmt.Errorf("查询Token失败: %w", err)
+	}
+
+	// 更新Token状态
+	if err := s.db.Model(&token).Update("status", "active").Error; err != nil {
+		return fmt.Errorf("启用Token失败: %w", err)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("启用API Token: %s", token.Name),
+		map[string]interface{}{
+			"token_id": tokenID,
+			"action":   "enable",
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// RegenerateToken 重新生成Token
+func (s *SystemService) RegenerateToken(tokenID uint, userID uint) (*models.APIToken, error) {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("Token不存在")
+		}
+		return nil, fmt.Errorf("查询Token失败: %w", err)
+	}
+
+	// 生成新的Token值
+	newTokenValue, err := s.generateRandomToken()
+	if err != nil {
+		return nil, fmt.Errorf("生成新Token失败: %w", err)
+	}
+
+	// 更新Token值和重置使用统计
+	updates := map[string]interface{}{
+		"token":        newTokenValue,
+		"usage_count":  0,
+		"last_used_at": nil,
+		"status":       "active",
+	}
+
+	if err := s.db.Model(&token).Updates(updates).Error; err != nil {
+		return nil, fmt.Errorf("更新Token失败: %w", err)
+	}
+
+	// 重新加载Token数据
+	if err := s.db.Preload("User").First(&token, tokenID).Error; err != nil {
+		return nil, fmt.Errorf("获取更新后的Token失败: %w", err)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("重新生成API Token: %s", token.Name),
+		map[string]interface{}{
+			"token_id": tokenID,
+			"action":   "regenerate",
+		}, &userID, "", "", "")
+
+	return &token, nil
+}
+
+// BatchDisableTokens 批量禁用Token
+func (s *SystemService) BatchDisableTokens(tokenIDs []uint, userID uint) error {
+	if len(tokenIDs) == 0 {
+		return fmt.Errorf("没有提供要禁用的Token ID")
+	}
+
+	result := s.db.Model(&models.APIToken{}).
+		Where("id IN ?", tokenIDs).
+		Update("status", "disabled")
+
+	if result.Error != nil {
+		return fmt.Errorf("批量禁用Token失败: %w", result.Error)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("批量禁用 %d 个API Token", result.RowsAffected),
+		map[string]interface{}{
+			"token_ids":     tokenIDs,
+			"affected_rows": result.RowsAffected,
+			"action":        "batch_disable",
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// BatchEnableTokens 批量启用Token
+func (s *SystemService) BatchEnableTokens(tokenIDs []uint, userID uint) error {
+	if len(tokenIDs) == 0 {
+		return fmt.Errorf("没有提供要启用的Token ID")
+	}
+
+	result := s.db.Model(&models.APIToken{}).
+		Where("id IN ?", tokenIDs).
+		Update("status", "active")
+
+	if result.Error != nil {
+		return fmt.Errorf("批量启用Token失败: %w", result.Error)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("批量启用 %d 个API Token", result.RowsAffected),
+		map[string]interface{}{
+			"token_ids":     tokenIDs,
+			"affected_rows": result.RowsAffected,
+			"action":        "batch_enable",
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// BatchRevokeTokens 批量撤销Token
+func (s *SystemService) BatchRevokeTokens(tokenIDs []uint, userID uint) error {
+	if len(tokenIDs) == 0 {
+		return fmt.Errorf("没有提供要撤销的Token ID")
+	}
+
+	result := s.db.Where("id IN ?", tokenIDs).Delete(&models.APIToken{})
+
+	if result.Error != nil {
+		return fmt.Errorf("批量撤销Token失败: %w", result.Error)
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "token", fmt.Sprintf("批量撤销 %d 个API Token", result.RowsAffected),
+		map[string]interface{}{
+			"token_ids":     tokenIDs,
+			"affected_rows": result.RowsAffected,
+			"action":        "batch_revoke",
+		}, &userID, "", "", "")
+
+	return nil
+}
+
+// UserForToken 用于Token创建的用户信息
+type UserForToken struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+// GetTokenUsageStats 获取Token使用统计
+func (s *SystemService) GetTokenUsageStats(tokenID uint) (*TokenUsageStats, error) {
+	var token models.APIToken
+	if err := s.db.First(&token, tokenID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("Token不存在")
+		}
+		return nil, fmt.Errorf("查询Token失败: %w", err)
+	}
+
+	stats := &TokenUsageStats{
+		TokenID:    tokenID,
+		TokenName:  token.Name,
+		TotalUsage: token.UsageCount,
+	}
+
+	now := time.Now()
+	today := now.Truncate(24 * time.Hour)
+	weekStart := today.AddDate(0, 0, -int(today.Weekday()))
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	// 今日使用次数
+	if err := s.db.Model(&models.APITokenUsageLog{}).
+		Where("token_id = ? AND created_at >= ?", tokenID, today).
+		Count(&stats.TodayUsage).Error; err != nil {
+		return nil, fmt.Errorf("获取今日使用统计失败: %w", err)
+	}
+
+	// 本周使用次数
+	if err := s.db.Model(&models.APITokenUsageLog{}).
+		Where("token_id = ? AND created_at >= ?", tokenID, weekStart).
+		Count(&stats.WeekUsage).Error; err != nil {
+		return nil, fmt.Errorf("获取本周使用统计失败: %w", err)
+	}
+
+	// 本月使用次数
+	if err := s.db.Model(&models.APITokenUsageLog{}).
+		Where("token_id = ? AND created_at >= ?", tokenID, monthStart).
+		Count(&stats.MonthUsage).Error; err != nil {
+		return nil, fmt.Errorf("获取本月使用统计失败: %w", err)
+	}
+
+	return stats, nil
+}
+
+// GetTokenUsageHistory 获取Token使用历史
+func (s *SystemService) GetTokenUsageHistory(tokenID uint, page, pageSize int, startTime, endTime *time.Time) (*TokenUsageHistoryResponse, error) {
+	var usageLogs []models.APITokenUsageLog
+	var total int64
+
+	query := s.db.Model(&models.APITokenUsageLog{}).Where("token_id = ?", tokenID)
+
+	// 时间范围过滤
+	if startTime != nil {
+		query = query.Where("created_at >= ?", *startTime)
+	}
+	if endTime != nil {
+		query = query.Where("created_at <= ?", *endTime)
+	}
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("获取使用历史总数失败: %w", err)
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&usageLogs).Error; err != nil {
+		return nil, fmt.Errorf("获取使用历史失败: %w", err)
+	}
+
+	return &TokenUsageHistoryResponse{
+		UsageLogs: usageLogs,
+		Total:     total,
+		Page:      page,
+		PageSize:  pageSize,
+	}, nil
+}
+
+// LogTokenUsage 记录Token使用日志
+func (s *SystemService) LogTokenUsage(tokenID uint, method, path, ipAddress, userAgent string, statusCode, duration int, requestID string) error {
+	usageLog := &models.APITokenUsageLog{
+		TokenID:    tokenID,
+		Method:     method,
+		Path:       path,
+		IPAddress:  ipAddress,
+		UserAgent:  userAgent,
+		StatusCode: statusCode,
+		Duration:   duration,
+		RequestID:  requestID,
+	}
+
+	if err := s.db.Create(usageLog).Error; err != nil {
+		return fmt.Errorf("记录Token使用日志失败: %w", err)
+	}
+
+	return nil
+}
+
+// TokenUsageStats Token使用统计
+type TokenUsageStats struct {
+	TokenID     uint   `json:"token_id"`
+	TokenName   string `json:"token_name"`
+	TotalUsage  int64  `json:"total_usage"`
+	TodayUsage  int64  `json:"today_usage"`
+	WeekUsage   int64  `json:"week_usage"`
+	MonthUsage  int64  `json:"month_usage"`
+}
+
+// TokenUsageHistoryResponse Token使用历史响应
+type TokenUsageHistoryResponse struct {
+	UsageLogs []models.APITokenUsageLog `json:"usage_logs"`
+	Total     int64                     `json:"total"`
+	Page      int                       `json:"page"`
+	PageSize  int                       `json:"page_size"`
+}
+
+// GetSystemStats 获取系统统计信息
+func (s *SystemService) GetSystemStats() (*SystemStatsResponse, error) {
+	stats := &SystemStatsResponse{}
+	
+	// 配置统计
+	if err := s.db.Model(&models.SystemConfig{}).Count(&stats.ConfigStats.Total).Error; err != nil {
+		return nil, fmt.Errorf("获取配置统计失败: %w", err)
+	}
+	
+	// 公告统计
+	if err := s.db.Model(&models.Announcement{}).Where("is_active = ?", true).Count(&stats.AnnouncementStats.Active).Error; err != nil {
+		return nil, fmt.Errorf("获取公告统计失败: %w", err)
+	}
+	
+	// 日志统计
+	today := time.Now().Truncate(24 * time.Hour)
+	if err := s.db.Model(&models.SystemLog{}).Where("created_at >= ?", today).Count(&stats.LogStats.Today).Error; err != nil {
+		return nil, fmt.Errorf("获取日志统计失败: %w", err)
+	}
+	
+	// Token统计
+	if err := s.db.Model(&models.APIToken{}).Count(&stats.TokenStats.Total).Error; err != nil {
+		return nil, fmt.Errorf("获取Token统计失败: %w", err)
+	}
+	
+	if err := s.db.Model(&models.APIToken{}).Where("status = ?", "active").Count(&stats.TokenStats.Active).Error; err != nil {
+		return nil, fmt.Errorf("获取活跃Token统计失败: %w", err)
+	}
+	
+	now := time.Now()
+	if err := s.db.Model(&models.APIToken{}).Where("expires_at IS NOT NULL AND expires_at < ?", now).Count(&stats.TokenStats.Expired).Error; err != nil {
+		return nil, fmt.Errorf("获取过期Token统计失败: %w", err)
+	}
+	
+	// 用户统计
+	if err := s.db.Model(&models.User{}).Where("status = ?", "active").Count(&stats.UserStats.Active).Error; err != nil {
+		return nil, fmt.Errorf("获取用户统计失败: %w", err)
+	}
+	
+	if err := s.db.Model(&models.User{}).Count(&stats.UserStats.Total).Error; err != nil {
+		return nil, fmt.Errorf("获取用户总数统计失败: %w", err)
+	}
+	
+	return stats, nil
+}
+
+// SystemStatsResponse 系统统计响应
+type SystemStatsResponse struct {
+	ConfigStats       ConfigStatsData       `json:"config_stats"`
+	AnnouncementStats AnnouncementStatsData `json:"announcement_stats"`
+	LogStats          LogStatsData          `json:"log_stats"`
+	TokenStats        TokenStatsData        `json:"token_stats"`
+	UserStats         UserStatsData         `json:"user_stats"`
+}
+
+type ConfigStatsData struct {
+	Total int64 `json:"total"`
+}
+
+type AnnouncementStatsData struct {
+	Active int64 `json:"active"`
+}
+
+type LogStatsData struct {
+	Today int64 `json:"today"`
+}
+
+type TokenStatsData struct {
+	Total   int64 `json:"total"`
+	Active  int64 `json:"active"`
+	Expired int64 `json:"expired"`
+}
+
+type UserStatsData struct {
+	Total  int64 `json:"total"`
+	Active int64 `json:"active"`
+}
+
+// InitializeDefaultConfigs 初始化默认配置
+func (s *SystemService) InitializeDefaultConfigs(userID uint) (int, error) {
+	// 检查是否已有配置
+	var count int64
+	if err := s.db.Model(&models.SystemConfig{}).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("检查配置数量失败: %w", err)
+	}
+
+	// 如果已有配置，返回现有数量
+	if count > 0 {
+		return int(count), nil
+	}
+
+	// 默认系统配置
+	configs := []models.SystemConfig{
+		// 系统基础配置
+		{
+			Category:     "system",
+			Key:          "app_name",
+			Value:        "信息管理系统",
+			DefaultValue: "信息管理系统",
+			Description:  "应用程序名称",
+			DataType:     "string",
+			IsPublic:     true,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "system",
+			Key:          "app_version",
+			Value:        "1.0.0",
+			DefaultValue: "1.0.0",
+			Description:  "应用程序版本号",
+			DataType:     "string",
+			IsPublic:     true,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "system",
+			Key:          "maintenance_mode",
+			Value:        "false",
+			DefaultValue: "false",
+			Description:  "系统维护模式开关",
+			DataType:     "bool",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "system",
+			Key:          "max_upload_size",
+			Value:        "10485760",
+			DefaultValue: "10485760",
+			Description:  "最大文件上传大小（字节），默认10MB",
+			DataType:     "int",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+
+		// 数据库配置
+		{
+			Category:     "database",
+			Key:          "connection_pool_size",
+			Value:        "10",
+			DefaultValue: "10",
+			Description:  "数据库连接池大小",
+			DataType:     "int",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "database",
+			Key:          "query_timeout",
+			Value:        "30",
+			DefaultValue: "30",
+			Description:  "数据库查询超时时间（秒）",
+			DataType:     "int",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+
+		// 文件存储配置
+		{
+			Category:     "storage",
+			Key:          "upload_path",
+			Value:        "./uploads",
+			DefaultValue: "./uploads",
+			Description:  "文件上传存储路径",
+			DataType:     "string",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "storage",
+			Key:          "allowed_extensions",
+			Value:        `["jpg","jpeg","png","gif","pdf","doc","docx","xls","xlsx","txt"]`,
+			DefaultValue: `["jpg","jpeg","png","gif","pdf","doc","docx","xls","xlsx","txt"]`,
+			Description:  "允许上传的文件扩展名",
+			DataType:     "json",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+
+		// 安全配置
+		{
+			Category:     "security",
+			Key:          "session_timeout",
+			Value:        "7200",
+			DefaultValue: "7200",
+			Description:  "会话超时时间（秒），默认2小时",
+			DataType:     "int",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "security",
+			Key:          "password_min_length",
+			Value:        "6",
+			DefaultValue: "6",
+			Description:  "密码最小长度",
+			DataType:     "int",
+			IsPublic:     true,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+
+		// 邮件配置
+		{
+			Category:     "email",
+			Key:          "smtp_enabled",
+			Value:        "false",
+			DefaultValue: "false",
+			Description:  "是否启用SMTP邮件发送",
+			DataType:     "bool",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+		{
+			Category:     "email",
+			Key:          "smtp_host",
+			Value:        "smtp.example.com",
+			DefaultValue: "smtp.example.com",
+			Description:  "SMTP服务器地址",
+			DataType:     "string",
+			IsPublic:     false,
+			IsEditable:   true,
+			Version:      1,
+			UpdatedBy:    userID,
+		},
+	}
+
+	// 创建配置
+	createdCount := 0
+	for _, config := range configs {
+		if err := s.db.Create(&config).Error; err != nil {
+			s.LogSystemEvent("error", "config", fmt.Sprintf("创建默认配置失败: %s.%s", config.Category, config.Key),
+				map[string]interface{}{
+					"category": config.Category,
+					"key":      config.Key,
+					"error":    err.Error(),
+				}, &userID, "", "", "")
+			continue
+		}
+		createdCount++
+	}
+
+	// 记录操作日志
+	s.LogSystemEvent("info", "config", fmt.Sprintf("初始化默认配置完成，创建了 %d 个配置项", createdCount),
+		map[string]interface{}{
+			"created_count": createdCount,
+			"total_configs": len(configs),
+		}, &userID, "", "", "")
+
+	return createdCount, nil
+}
+
+// GetUsersForToken 获取用于Token创建的用户列表
+func (s *SystemService) GetUsersForToken(currentUserID uint) ([]UserForToken, error) {
+	var users []UserForToken
+	
+	// 查询所有活跃用户的基本信息
+	err := s.db.Model(&models.User{}).
+		Select("id, username, email").
+		Where("status = ? AND deleted_at IS NULL", "active").
+		Order("username ASC").
+		Scan(&users).Error
+	
+	if err != nil {
+		return nil, fmt.Errorf("获取用户列表失败: %v", err)
+	}
+	
+	return users, nil
 }

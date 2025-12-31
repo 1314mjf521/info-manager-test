@@ -59,11 +59,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// 返回用户信息（不包含密码）
 	userInfo := services.UserInfo{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		IsActive: user.IsActive,
-		Roles:    []string{"user"}, // 默认角色
+		ID:          user.ID,
+		Username:    user.Username,
+		Email:       user.Email,
+		IsActive:    user.IsActive,
+		Roles:       []services.AuthRoleInfo{}, // 空角色列表
+		Permissions: []services.AuthPermissionInfo{}, // 空权限列表
 	}
 
 	middleware.Created(c, userInfo)

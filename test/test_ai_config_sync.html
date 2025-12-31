@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI配置同步测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background: #409eff;
+            color: white;
+        }
+        .btn-success {
+            background: #67c23a;
+            color: white;
+        }
+        .btn-warning {
+            background: #e6a23c;
+            color: white;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        .error {
+            background: #fef0f0;
+            border-color: #fbc4c4;
+            color: #c53030;
+        }
+        .success {
+            background: #f0f9ff;
+            border-color: #b3d8ff;
+            color: #0066cc;
+        }
+        .config-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .config-item {
+            padding: 15px;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .config-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .config-details {
+            font-size: 12px;
+            color: #666;
+        }
+        .test-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .step {
+            padding: 10px;
+            border-left: 4px solid #409eff;
+            background: #f0f9ff;
+            margin-bottom: 10px;
+        }
+        .step.completed {
+            border-left-color: #67c23a;
+            background: #f0f9ff;
+        }
+        .step.error {
+            border-left-color: #f56565;
+            background: #fef0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI配置同步测试</h1>
+        <p>测试通过不同入口创建AI配置后的同步效果</p>
+        
+        <!-- 测试流程 -->
+        <div class="test-section">
+            <div class="test-title">测试流程</div>
+            <div class="test-flow">
+                <div class="step" id="step1">
+                    <strong>步骤1:</strong> 获取当前配置列表（基准）
+                </div>
+                <div class="step" id="step2">
+                    <strong>步骤2:</strong> 通过"添加AI配置"按钮创建配置
+                </div>
+                <div class="step" id="step3">
+                    <strong>步骤3:</strong> 验证配置是否出现在列表中
+                </div>
+                <div class="step" id="step4">
+                    <strong>步骤4:</strong> 通过"配置管理"标签创建配置
+                </div>
+                <div class="step" id="step5">
+                    <strong>步骤5:</strong> 验证两种方式创建的配置都显示
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前配置列表 -->
+        <div class="test-section">
+            <div class="test-title">当前AI配置列表</div>
+            <button class="btn btn-primary" onclick="loadCurrentConfigs()">刷新配置列表</button>
+            <div id="configList" class="config-list"></div>
+            <div id="configResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 模拟添加AI配置按钮 -->
+        <div class="test-section">
+            <div class="test-title">模拟"添加AI配置"按钮功能</div>
+            <p>这个测试模拟点击界面上"+添加AI配置"按钮后的保存流程</p>
+            
+            <button class="btn btn-primary" onclick="simulateAddConfigButton()">模拟添加AI配置</button>
+            <button class="btn btn-success" onclick="simulateConfigManagementSave()">模拟配置管理保存</button>
+            
+            <div id="simulateResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 配置同步测试 -->
+        <div class="test-section">
+            <div class="test-title">配置同步测试</div>
+            <p>测试不同组件间的配置同步</p>
+            
+            <button class="btn btn-warning" onclick="testConfigSync()">测试配置同步</button>
+            
+            <div id="syncResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- API测试 -->
+        <div class="test-section">
+            <div class="test-title">API直接测试</div>
+            <p>直接测试后端API的配置创建和获取</p>
+            
+            <button class="btn btn-primary" onclick="testCreateConfig()">创建测试配置</button>
+            <button class="btn btn-success" onclick="testGetConfigs()">获取配置列表</button>
+            <button class="btn btn-warning" onclick="testDeleteLastConfig()">删除最后一个配置</button>
+            
+            <div id="apiResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentConfigs = [];
+        let testConfigId = null;
+
+        // 显示结果
+        function showResult(elementId, message, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        // 更新步骤状态
+        function updateStep(stepId, status = 'completed') {
+            const step = document.getElementById(stepId);
+            step.className = `step ${status}`;
+        }
+
+        // 加载当前配置
+        async function loadCurrentConfigs() {
+            try {
+                updateStep('step1', 'completed');
+                const response = await fetch('/api/ai/config');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    currentConfigs = result.configs || [];
+                    displayConfigs(currentConfigs);
+                    showResult('configResult', `✅ 成功加载 ${currentConfigs.length} 个配置`, 'success');
+                } else {
+                    const error = await response.json();
+                    showResult('configResult', `❌ 加载失败: ${JSON.stringify(error, null, 2)}`, 'error');
+                    updateStep('step1', 'error');
+                }
+            } catch (error) {
+                showResult('configResult', `❌ 网络错误: ${error.message}`, 'error');
+                updateStep('step1', 'error');
+            }
+        }
+
+        // 显示配置列表
+        function displayConfigs(configs) {
+            const listElement = document.getElementById('configList');
+            
+            if (configs.length === 0) {
+                listElement.innerHTML = '<p>暂无配置</p>';
+                return;
+            }
+
+            const html = configs.map(config => `
+                <div class="config-item">
+                    <div class="config-name">
+                        ${config.name}
+                        ${config.is_default ? '<span style="color: #67c23a;">[默认]</span>' : ''}
+                    </div>
+                    <div class="config-details">
+                        ID: ${config.id}<br>
+                        提供商: ${config.provider}<br>
+                        模型: ${config.model}<br>
+                        状态: ${config.status}<br>
+                        创建时间: ${new Date(config.created_at).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+            
+            listElement.innerHTML = html;
+        }
+
+        // 模拟添加AI配置按钮
+        async function simulateAddConfigButton() {
+            try {
+                updateStep('step2', 'completed');
+                
+                // 模拟AIManagement中handleConfigSave的数据格式
+                const configData = {
+                    name: `测试配置-添加按钮-${Date.now()}`,
+                    provider: 'custom',
+                    api_key: 'test-key-add-button',
+                    api_endpoint: 'http://localhost:8000/v1',
+                    model: 'test-model-add',
+                    config: '',
+                    categories: ['chat'],
+                    tags: ['production'],
+                    description: '通过添加AI配置按钮创建',
+                    priority: 5,
+                    is_active: true,
+                    is_default: false,
+                    max_tokens: 4096,
+                    temperature: 0.7,
+                    daily_limit: 0,
+                    monthly_limit: 0,
+                    cost_per_token: 0
+                };
+
+                showResult('simulateResult', `发送数据（添加按钮）:\n${JSON.stringify(configData, null, 2)}`, 'success');
+
+                const response = await fetch('/api/ai/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    testConfigId = result.id;
+                    showResult('simulateResult', `✅ 添加按钮创建成功\n响应: ${JSON.stringify(result, null, 2)}`, 'success');
+                    
+                    // 自动刷新配置列表验证
+                    setTimeout(async () => {
+                        await loadCurrentConfigs();
+                        updateStep('step3', 'completed');
+                    }, 1000);
+                } else {
+                    const error = await response.json();
+                    showResult('simulateResult', `❌ 添加按钮创建失败\n错误: ${JSON.stringify(error, null, 2)}`, 'error');
+                    updateStep('step2', 'error');
+                }
+            } catch (error) {
+                showResult('simulateResult', `❌ 网络错误: ${error.message}`, 'error');
+                updateStep('step2', 'error');
+            }
+        }
+
+        // 模拟配置管理保存
+        async function simulateConfigManagementSave() {
+            try {
+                updateStep('step4', 'completed');
+                
+                // 模拟AIConfigSimple中saveConfig的数据格式
+                const configData = {
+                    name: `测试配置-配置管理-${Date.now()}`,
+                    provider: 'custom',
+                    api_key: 'test-key-config-mgmt',
+                    api_endpoint: 'http://localhost:8000/v1',
+                    model: 'test-model-mgmt',
+                    config: '',
+                    categories: ['chat'],
+                    tags: ['production'],
+                    description: '通过配置管理创建',
+                    priority: 5,
+                    is_active: true,
+                    is_default: false,
+                    max_tokens: 4096,
+                    temperature: 0.7,
+                    daily_limit: 0,
+                    monthly_limit: 0,
+                    cost_per_token: 0
+                };
+
+                showResult('simulateResult', `发送数据（配置管理）:\n${JSON.stringify(configData, null, 2)}`, 'success');
+
+                const response = await fetch('/api/ai/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showResult('simulateResult', `✅ 配置管理创建成功\n响应: ${JSON.stringify(result, null, 2)}`, 'success');
+                    
+                    // 自动刷新配置列表验证
+                    setTimeout(async () => {
+                        await loadCurrentConfigs();
+                        updateStep('step5', 'completed');
+                    }, 1000);
+                } else {
+                    const error = await response.json();
+                    showResult('simulateResult', `❌ 配置管理创建失败\n错误: ${JSON.stringify(error, null, 2)}`, 'error');
+                    updateStep('step4', 'error');
+                }
+            } catch (error) {
+                showResult('simulateResult', `❌ 网络错误: ${error.message}`, 'error');
+                updateStep('step4', 'error');
+            }
+        }
+
+        // 测试配置同步
+        async function testConfigSync() {
+            try {
+                showResult('syncResult', '开始配置同步测试...', 'success');
+                
+                // 1. 创建配置
+                const configData = {
+                    name: `同步测试配置-${Date.now()}`,
+                    provider: 'openai',
+                    api_key: 'test-sync-key',
+                    api_endpoint: '',
+                    model: 'gpt-3.5-turbo',
+                    config: '',
+                    categories: ['chat'],
+                    tags: ['test'],
+                    description: '同步测试配置',
+                    priority: 5,
+                    is_active: true,
+                    is_default: false,
+                    max_tokens: 4096,
+                    temperature: 0.7,
+                    daily_limit: 0,
+                    monthly_limit: 0,
+                    cost_per_token: 0
+                };
+
+                const createResponse = await fetch('/api/ai/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (!createResponse.ok) {
+                    throw new Error('创建配置失败');
+                }
+
+                const createResult = await createResponse.json();
+                
+                // 2. 立即获取配置列表
+                const getResponse = await fetch('/api/ai/config');
+                const getResult = await getResponse.json();
+                const configs = getResult.configs || [];
+                
+                // 3. 检查新配置是否在列表中
+                const newConfig = configs.find(c => c.id === createResult.id);
+                
+                if (newConfig) {
+                    showResult('syncResult', `✅ 配置同步测试成功\n创建的配置立即出现在列表中\n配置ID: ${createResult.id}\n配置名称: ${newConfig.name}`, 'success');
+                } else {
+                    showResult('syncResult', `❌ 配置同步测试失败\n创建的配置未出现在列表中\n创建结果: ${JSON.stringify(createResult, null, 2)}\n列表中的配置: ${configs.length} 个`, 'error');
+                }
+                
+                // 刷新显示
+                await loadCurrentConfigs();
+                
+            } catch (error) {
+                showResult('syncResult', `❌ 同步测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试创建配置
+        async function testCreateConfig() {
+            const configData = {
+                name: `API测试配置-${Date.now()}`,
+                provider: 'custom',
+                api_key: 'test-api-key',
+                api_endpoint: 'http://localhost:8000/v1',
+                model: 'test-model',
+                config: '',
+                categories: ['chat'],
+                tags: ['test'],
+                description: 'API直接测试配置',
+                priority: 5,
+                is_active: true,
+                is_default: false,
+                max_tokens: 4096,
+                temperature: 0.7,
+                daily_limit: 0,
+                monthly_limit: 0,
+                cost_per_token: 0
+            };
+
+            try {
+                const response = await fetch('/api/ai/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    testConfigId = result.id;
+                    showResult('apiResult', `✅ API创建配置成功\n${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    const error = await response.json();
+                    showResult('apiResult', `❌ API创建配置失败\n${JSON.stringify(error, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ 网络错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试获取配置
+        async function testGetConfigs() {
+            try {
+                const response = await fetch('/api/ai/config');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showResult('apiResult', `✅ API获取配置成功\n配置数量: ${result.configs?.length || 0}\n${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    const error = await response.json();
+                    showResult('apiResult', `❌ API获取配置失败\n${JSON.stringify(error, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ 网络错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 删除最后一个配置
+        async function testDeleteLastConfig() {
+            if (!testConfigId) {
+                showResult('apiResult', '❌ 没有可删除的测试配置ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/ai/config/${testConfigId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showResult('apiResult', `✅ 删除配置成功\n配置ID: ${testConfigId}`, 'success');
+                    testConfigId = null;
+                } else {
+                    const error = await response.json();
+                    showResult('apiResult', `❌ 删除配置失败\n${JSON.stringify(error, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ 网络错误: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动获取配置
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentConfigs();
+        });
+    </script>
+</body>
+</html>

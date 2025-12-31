@@ -84,6 +84,8 @@
     
     <!-- 公共公告组件 -->
     <PublicAnnouncements ref="publicAnnouncementsRef" />
+    
+
   </el-container>
 </template>
 
@@ -104,7 +106,9 @@ import {
   Folder,
   Download,
   UserFilled,
-  Setting
+  Setting,
+  Key,
+  List
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import PublicAnnouncements from '@/components/PublicAnnouncements.vue'
@@ -171,6 +175,27 @@ const menuItems = computed(() => [
     hidden: false
   },
   {
+    path: '/permissions',
+    title: '权限管理',
+    icon: 'Key',
+    permission: 'system:admin',
+    hidden: false
+  },
+  {
+    path: '/tickets',
+    title: '工单管理',
+    icon: 'List',
+    permission: 'ticket:read_own',
+    hidden: false
+  },
+  {
+    path: '/ai',
+    title: 'AI功能',
+    icon: 'Avatar',
+    permission: 'ai:features',
+    hidden: false
+  },
+  {
     path: '/system',
     title: '系统管理',
     icon: 'Setting',
@@ -182,6 +207,23 @@ const menuItems = computed(() => [
 // 权限检查
 const hasPermission = (permission: string | null) => {
   if (!permission) return true
+  
+  // 直接检查用户是否有该权限
+  if (authStore.userPermissions.includes(permission)) {
+    return true
+  }
+  
+  // 对于工单权限，如果用户有任何工单相关权限，就显示工单菜单
+  if (permission.startsWith('ticket:')) {
+    return authStore.userPermissions.some(p => p.startsWith('ticket:'))
+  }
+  
+  // 对于文件权限，如果用户有任何文件相关权限，就显示文件菜单
+  if (permission.startsWith('files:')) {
+    return authStore.userPermissions.some(p => p.startsWith('files:'))
+  }
+  
+  // 其他权限使用原有逻辑
   const [resource, action, scope = 'all'] = permission.split(':')
   return authStore.hasPermission(resource, action, scope)
 }

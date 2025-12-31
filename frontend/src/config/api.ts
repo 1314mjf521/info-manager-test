@@ -7,7 +7,7 @@ export const API_CONFIG = {
   VERSION: '/api/v1',
 
   // 请求超时时间
-  TIMEOUT: 15000, // 增加超时时间到15秒
+  TIMEOUT: 30000, // 增加超时时间到30秒
 
   // 分页默认配置
   PAGE_SIZE: 20,
@@ -76,6 +76,8 @@ export const API_ENDPOINTS = {
   EXPORT: {
     TEMPLATES: '/export/templates',
     RECORDS: '/export/records',
+    TASKS: '/export/tasks',
+    TASK_DETAIL: (id: number) => `/export/tasks/${id}`,
     FILES: '/export/files',
     DOWNLOAD: (id: number) => `/export/files/${id}/download`
   },
@@ -109,11 +111,31 @@ export const API_ENDPOINTS = {
     BATCH_DELETE: '/admin/roles/batch'
   },
 
+  // 仪表盘
+  DASHBOARD: {
+    STATS: '/dashboard/stats',
+    RECENT_RECORDS: '/dashboard/recent-records',
+    SYSTEM_INFO: '/dashboard/system-info'
+  },
+
   // 系统管理
   SYSTEM: {
     HEALTH: '/system/health',
     CONFIG: '/config',
     ANNOUNCEMENTS: '/announcements'
+  },
+
+  // AI功能
+  AI: {
+    CONFIG: '/ai/config',
+    CONFIG_DETAIL: (id: number) => `/ai/config/${id}`,
+    CHAT: '/ai/chat',
+    OPTIMIZE_RECORD: '/ai/optimize-record',
+    SPEECH_TO_TEXT: '/ai/speech-to-text',
+    TASKS: '/ai/tasks',
+    SESSIONS: '/ai/sessions',
+    STATS: '/ai/stats',
+    HEALTH_CHECK: (id: number) => `/ai/health/${id}`
   }
 }
 
