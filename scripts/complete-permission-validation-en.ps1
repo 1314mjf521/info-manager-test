@@ -1,4 +1,4 @@
-# Complete Permission System Validation Script
+﻿# Complete Permission System Validation Script
 # Tests all 76 permissions across 10 modules
 # English version to avoid encoding issues
 
@@ -7,10 +7,10 @@ param(
 )
 
 # Color functions for output
-function Write-Success { param($Message) Write-Host "✅ $Message" -ForegroundColor Green }
-function Write-Error { param($Message) Write-Host "❌ $Message" -ForegroundColor Red }
-function Write-Info { param($Message) Write-Host "ℹ️  $Message" -ForegroundColor Cyan }
-function Write-Warning { param($Message) Write-Host "⚠️  $Message" -ForegroundColor Yellow }
+function Write-Success { param($Message) Write-Host "鉁?$Message" -ForegroundColor Green }
+function Write-Error { param($Message) Write-Host "鉂?$Message" -ForegroundColor Red }
+function Write-Info { param($Message) Write-Host "鈩癸笍  $Message" -ForegroundColor Cyan }
+function Write-Warning { param($Message) Write-Host "鈿狅笍  $Message" -ForegroundColor Yellow }
 
 # Test counters
 $script:TotalTests = 0
@@ -442,7 +442,7 @@ Write-Info "Starting comprehensive permission tests..."
 Write-Info ""
 
 # Test Admin permissions (should pass all)
-Write-Info "🔐 Testing ADMIN user permissions (should pass all 76 permissions)"
+Write-Info "馃攼 Testing ADMIN user permissions (should pass all 76 permissions)"
 Write-Info "=================================================="
 
 Test-SystemPermissions $adminData.Token $true "Admin"
@@ -458,7 +458,7 @@ Test-AIPermissions $adminData.Token $true "Admin"
 
 if ($tikerData) {
     Write-Info ""
-    Write-Info "🔐 Testing TIKER user permissions (should fail admin functions)"
+    Write-Info "馃攼 Testing TIKER user permissions (should fail admin functions)"
     Write-Info "=============================================================="
 
     Test-SystemPermissions $tikerData.Token $false "Tiker"
@@ -533,10 +533,10 @@ $reportContent | Out-File -FilePath $reportPath -Encoding UTF8
 Write-Info "Detailed report saved to: $reportPath"
 
 if ($script:FailedTests -eq 0) {
-    Write-Success "🎉 ALL TESTS PASSED! Permission system is working correctly."
+    Write-Success "馃帀 ALL TESTS PASSED! Permission system is working correctly."
     exit 0
 } else {
-    Write-Warning "⚠️  Some tests failed. Please review the failed permissions above."
+    Write-Warning "鈿狅笍  Some tests failed. Please review the failed permissions above."
     exit 1
 }
 

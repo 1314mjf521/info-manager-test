@@ -514,7 +514,7 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	}
 
 	var req struct {
-		Status  string `json:"status" binding:"required,oneof=submitted assigned approved progress pending resolved closed rejected returned"`
+		Status  string `json:"status" binding:"required,oneof=submitted assigned accepted approved progress pending resolved closed rejected returned"`
 		Comment string `json:"comment"`
 	}
 
@@ -532,7 +532,7 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	// 查找工单
 	var ticket models.Ticket
 	query := h.db
-	if !hasPermission(c, "ticket:status_all") {
+	if !hasPermission(c, "ticket:status") {
 		query = query.Where("creator_id = ? OR assignee_id = ?", userID, userID)
 	}
 

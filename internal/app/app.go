@@ -30,8 +30,11 @@ type App struct {
 	ocrService          *services.OCRService
 	exportService       *services.ExportService
 	notificationService *services.NotificationService
+	wechatService       *services.WechatService
 	aiService           *services.AIService
 	systemService       *services.SystemService
+	dashboardService    *services.DashboardService
+	ticketService       *services.TicketService
 	authHandler         *handlers.AuthHandler
 	userHandler         *handlers.UserHandler
 	permissionHandler   *handlers.PermissionHandler
@@ -43,8 +46,11 @@ type App struct {
 	ocrHandler          *handlers.OCRHandler
 	exportHandler       *handlers.ExportHandler
 	notificationHandler *handlers.NotificationHandler
+	ticketHandler       *handlers.TicketHandler
+	wechatHandler       *handlers.WechatHandler
 	aiHandler           *handlers.AIHandler
 	systemHandler       *handlers.SystemHandler
+	dashboardHandler    *handlers.DashboardHandler
 }
 
 // New 创建新的应用实例
@@ -121,8 +127,11 @@ func (a *App) initServices() error {
 	a.ocrService = services.NewOCRService("", "") // 暂时使用空配置，将使用模拟模式
 	a.exportService = services.NewExportService(db, a.recordService)
 	a.notificationService = services.NewNotificationService(db)
+	a.wechatService = services.NewWechatService(db)
+	a.ticketService = services.NewTicketService(db, a.wechatService)
 	a.aiService = services.NewAIService(db)
 	a.systemService = services.NewSystemService(db)
+	a.dashboardService = services.NewDashboardService(db)
 
 	// 初始化处理器
 	a.authHandler = handlers.NewAuthHandler(a.authService, a.userService)
@@ -136,8 +145,11 @@ func (a *App) initServices() error {
 	a.ocrHandler = handlers.NewOCRHandler(a.ocrService)
 	a.exportHandler = handlers.NewExportHandler(a.exportService)
 	a.notificationHandler = handlers.NewNotificationHandler(a.notificationService)
+	a.ticketHandler = handlers.NewTicketHandler(db, a.notificationService)
+	a.wechatHandler = handlers.NewWechatHandler(a.wechatService)
 	a.aiHandler = handlers.NewAIHandler(a.aiService)
 	a.systemHandler = handlers.NewSystemHandler(a.systemService)
+	a.dashboardHandler = handlers.NewDashboardHandler(a.dashboardService)
 
 	return nil
 }
