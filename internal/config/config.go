@@ -79,8 +79,14 @@ type JWTConfig struct {
 
 // LogConfig 日志配置
 type LogConfig struct {
-	Level  string `mapstructure:"level"`  // debug, info, warn, error
-	Format string `mapstructure:"format"` // json, text
+	Level      string `mapstructure:"level"`        // debug, info, warn, error
+	Format     string `mapstructure:"format"`       // json, text
+	Output     string `mapstructure:"output"`       // stdout, file, both
+	FilePath   string `mapstructure:"file_path"`    // 日志文件路径
+	MaxSize    int    `mapstructure:"max_size"`     // 单个日志文件最大大小(MB)
+	MaxBackups int    `mapstructure:"max_backups"`  // 保留的旧日志文件数量
+	MaxAge     int    `mapstructure:"max_age"`      // 日志文件保留天数
+	Compress   bool   `mapstructure:"compress"`     // 是否压缩旧日志文件
 }
 
 // Load 加载配置

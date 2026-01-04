@@ -1772,3 +1772,8 @@ func (s *SystemService) GetUsersForToken(currentUserID uint) ([]UserForToken, er
 	
 	return users, nil
 }
+
+// GetDB returns the database connection for testing purposes
+func (s *SystemService) GetDB() *gorm.DB {
+	return s.db
+}

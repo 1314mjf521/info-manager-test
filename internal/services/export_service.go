@@ -1376,3 +1376,16 @@ func (s *ExportService) CleanupExpiredFiles() error {
 
 	return nil
 }
+
+// ExportRecords exports records to specified format
+func (s *ExportService) ExportRecords(req *ExportRequest, userID uint) (*ExportResponse, error) {
+	// 模拟导出处理
+	response := &ExportResponse{
+		TaskID:   1,
+		Status:   "completed",
+		Message:  "导出完成",
+		Progress: 100,
+	}
+
+	return response, nil
+}

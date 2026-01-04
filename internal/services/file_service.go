@@ -371,3 +371,8 @@ func generateRandomString(length int) string {
 	}
 	return string(b)
 }
+
+// CreateFileRecord creates a file record for testing
+func (s *FileService) CreateFileRecord(file *models.File) error {
+	return s.db.Create(file).Error
+}

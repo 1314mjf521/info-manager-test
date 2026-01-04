@@ -325,3 +325,49 @@ func (s *TicketService) InitializeTicketPermissions() error {
 
 	return nil
 }
+
+// AssignTicket assigns a ticket to a user
+func (s *TicketService) AssignTicket(ticketID, assigneeID, userID uint, reason string) error {
+	var ticket models.Ticket
+	if err := s.db.First(&ticket, ticketID).Error; err != nil {
+		return fmt.Errorf("工单不存在: %w", err)
+	}
+
+	// 更新分配人
+	updates := map[string]interface{}{
+		"assignee_id": assigneeID,
+		"status":      "assigned",
+	}
+
+	return s.db.Model(&ticket).Updates(updates).Error
+}
+
+// RejectTicket 拒绝工单
+func (s *TicketService) RejectTicket(ticketID, userID uint, reason string) error {
+	var ticket models.Ticket
+	if err := s.db.First(&ticket, ticketID).Error; err != nil {
+		return fmt.Errorf("工单不存在: %w", err)
+	}
+
+	// 更新状态为拒绝
+	updates := map[string]interface{}{
+		"status": "rejected",
+	}
+
+	return s.db.Model(&ticket).Updates(updates).Error
+}
+
+// UpdateTicketStatus 更新工单状态
+func (s *TicketService) UpdateTicketStatus(ticketID uint, status string, userID uint, comment string) error {
+	var ticket models.Ticket
+	if err := s.db.First(&ticket, ticketID).Error; err != nil {
+		return fmt.Errorf("工单不存在: %w", err)
+	}
+
+	// 更新状态
+	updates := map[string]interface{}{
+		"status": status,
+	}
+
+	return s.db.Model(&ticket).Updates(updates).Error
+}

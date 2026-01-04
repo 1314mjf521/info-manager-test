@@ -1,144 +1,230 @@
-# 信息记录管理系统配置文件示例
-# 复制此文件为 config.yaml 并修改相应配置
+# 信息管理系统配置文件示例
+# 复制此文件为 config.yaml 并根据实际环境修改配置
 
 # 服务器配置
 server:
-  host: "0.0.0.0"
-  port: 8080
-  mode: "release"  # debug, release, test
-  read_timeout: 30s
-  write_timeout: 30s
+  port: "8080"                    # 服务端口
+  mode: "release"                 # 运行模式: debug, release
 
 # 数据库配置
 database:
-  driver: "sqlite"  # sqlite, mysql, postgres
-  # SQLite 配置（推荐用于单机部署）
-  sqlite:
-    path: "data/info_system.db"
+  # 数据库类型: sqlite, mysql, postgres
+  driver: "sqlite"
   
-  # MySQL 配置（可选）
+  # SQLite配置 (默认，适合开发和小型部署)
+  sqlite:
+    path: "data/info_system.db"   # 数据库文件路径
+    journal_mode: "WAL"           # 日志模式: DELETE, TRUNCATE, PERSIST, MEMORY, WAL, OFF
+    busy_timeout: 30000           # 忙等待超时时间(毫秒)
+    cache_size: -64000            # 缓存大小(页数，负数表示KB)
+    synchronous: "NORMAL"         # 同步模式: OFF, NORMAL, FULL, EXTRA
+    temp_store: "MEMORY"          # 临时存储: DEFAULT, FILE, MEMORY
+    max_open_conns: 1             # 最大打开连接数
+    max_idle_conns: 1             # 最大空闲连接数
+    conn_max_lifetime: "1h"       # 连接最大生存时间
+    conn_max_idle_time: "30m"     # 连接最大空闲时间
+  
+  # MySQL配置 (推荐生产环境)
   mysql:
-    host: "localhost"
-    port: 3306
-    username: "root"
-    password: "password"
-    database: "info_system"
-    charset: "utf8mb4"
-    
-  # PostgreSQL 配置（可选）
-  postgres:
-    host: "localhost"
-    port: 5432
-    username: "postgres"
-    password: "password"
-    database: "info_system"
-    sslmode: "disable"
-    timezone: "Asia/Shanghai"
+    host: "localhost"             # 数据库主机
+    port: "3306"                  # 数据库端口
+    username: "info_user"         # 数据库用户名
+    password: "your_password"     # 数据库密码
+    database: "info_management"   # 数据库名称
+    charset: "utf8mb4"            # 字符集
+  
+  # PostgreSQL配置
+  # host: "localhost"
+  # port: "5432"
+  # username: "info_user"
+  # password: "your_password"
+  # database: "info_management"
+  # ssl_mode: "disable"           # SSL模式: disable, require, verify-ca, verify-full
 
-  # 连接池配置
-  max_open_conns: 100
-  max_idle_conns: 10
-  conn_max_lifetime: 3600s
+  # TiDB配置 (使用MySQL驱动)
+  # driver: "mysql"
+  # mysql:
+  #   host: "tidb-host"           # TiDB服务器地址
+  #   port: "4000"                # TiDB端口 (默认4000)
+  #   username: "root"            # TiDB用户名
+  #   password: "your_password"   # TiDB密码
+  #   database: "info_management" # 数据库名称
+  #   charset: "utf8mb4"          # 字符集
 
-# JWT 配置
+# Redis配置 (可选，用于缓存和会话)
+redis:
+  host: "localhost"               # Redis主机
+  port: "6379"                    # Redis端口
+  password: ""                    # Redis密码 (如果有)
+  db: 0                          # Redis数据库编号
+
+# JWT配置
 jwt:
-  secret: "your-secret-key-change-this-in-production"
-  expires_in: 24h
-  refresh_expires_in: 168h  # 7 days
+  secret: "your-super-secret-key-change-in-production"  # JWT密钥，生产环境必须修改
+  expire_time: 24                 # Token过期时间(小时)
 
 # 日志配置
 log:
-  level: "info"  # debug, info, warn, error
-  format: "text"  # text, json
-  output: "stdout"  # stdout, file
-  file_path: "logs/app.log"
+  level: "info"                   # 日志级别: debug, info, warn, error
+  format: "json"                  # 日志格式: json, text
+  output: "both"                  # 输出方式: stdout, file, both
+  file_path: "logs/app.log"       # 日志文件路径
+  max_size: 100                   # 单个日志文件最大大小(MB)
+  max_backups: 10                 # 保留的旧日志文件数量
+  max_age: 30                     # 日志文件保留天数
+  compress: true                  # 是否压缩旧日志文件
 
-# Redis 配置（可选，用于缓存）
-redis:
-  enabled: false
-  host: "localhost"
-  port: 6379
-  password: ""
-  database: 0
+# 文件上传配置
+file:
+  upload_path: "uploads"          # 文件上传目录
+  max_size: 100                   # 最大文件大小(MB)
+  allowed_types:                  # 允许的文件类型
+    - "image/jpeg"
+    - "image/png"
+    - "image/gif"
+    - "application/pdf"
+    - "application/msword"
+    - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    - "application/vnd.ms-excel"
+    - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    - "text/plain"
+    - "text/csv"
 
-# 文件存储配置
-storage:
-  type: "local"  # local, s3, oss
-  local:
-    upload_path: "uploads"
-    max_file_size: 10485760  # 10MB
-  allowed_extensions:
-    - ".jpg"
-    - ".jpeg"
-    - ".png"
-    - ".gif"
-    - ".pdf"
-    - ".doc"
-    - ".docx"
-    - ".xls"
-    - ".xlsx"
-    - ".txt"
+# 邮件配置 (可选)
+email:
+  enabled: false                  # 是否启用邮件功能
+  smtp_host: "smtp.example.com"   # SMTP服务器
+  smtp_port: 587                  # SMTP端口
+  username: "noreply@example.com" # 邮箱用户名
+  password: "your_email_password" # 邮箱密码
+  from_name: "信息管理系统"        # 发件人名称
+  use_tls: true                   # 是否使用TLS
 
-# AI 服务配置（可选）
+# OCR配置 (可选)
+ocr:
+  enabled: false                  # 是否启用OCR功能
+  provider: "tesseract"           # OCR提供商: tesseract, baidu, tencent
+  # Tesseract配置
+  tesseract:
+    path: "/usr/bin/tesseract"    # Tesseract可执行文件路径
+    data_path: "/usr/share/tesseract-ocr/4.00/tessdata"  # 语言数据路径
+  # 百度OCR配置
+  baidu:
+    app_id: "your_app_id"
+    api_key: "your_api_key"
+    secret_key: "your_secret_key"
+  # 腾讯OCR配置
+  tencent:
+    secret_id: "your_secret_id"
+    secret_key: "your_secret_key"
+    region: "ap-beijing"
+
+# AI配置 (可选)
 ai:
-  enabled: false
+  enabled: false                  # 是否启用AI功能
+  default_provider: "openai"      # 默认AI提供商
+  # OpenAI配置
   openai:
-    api_key: "your-openai-api-key"
-    model: "gpt-3.5-turbo"
-    max_tokens: 1000
-    temperature: 0.7
-
-# 通知配置（可选）
-notification:
-  enabled: false
-  wechat:
-    corp_id: "your-corp-id"
-    corp_secret: "your-corp-secret"
-    agent_id: 1000001
-  email:
-    smtp_host: "smtp.gmail.com"
-    smtp_port: 587
-    username: "your-email@gmail.com"
-    password: "your-app-password"
+    api_key: "sk-your-openai-api-key"
+    base_url: "https://api.openai.com/v1"  # API基础URL
+    model: "gpt-3.5-turbo"        # 默认模型
+    max_tokens: 2000              # 最大token数
+    temperature: 0.7              # 温度参数
+  # 其他AI提供商配置...
 
 # 安全配置
 security:
+  # 密码策略
+  password:
+    min_length: 8                 # 最小密码长度
+    require_uppercase: true       # 是否需要大写字母
+    require_lowercase: true       # 是否需要小写字母
+    require_numbers: true         # 是否需要数字
+    require_symbols: false        # 是否需要特殊字符
+  
+  # 登录策略
+  login:
+    max_attempts: 5               # 最大登录尝试次数
+    lockout_duration: 300         # 锁定时间(秒)
+    session_timeout: 3600         # 会话超时时间(秒)
+  
+  # CORS配置
   cors:
-    allowed_origins:
+    allowed_origins:              # 允许的源
       - "http://localhost:3000"
-      - "http://127.0.0.1:3000"
-    allowed_methods:
+      - "http://localhost:8080"
+    allowed_methods:              # 允许的HTTP方法
       - "GET"
       - "POST"
       - "PUT"
       - "DELETE"
       - "OPTIONS"
-    allowed_headers:
+    allowed_headers:              # 允许的请求头
       - "Origin"
       - "Content-Type"
       - "Authorization"
-    allow_credentials: true
-  
-  rate_limit:
-    enabled: true
-    requests_per_minute: 100
-    
-  password:
-    min_length: 8
-    require_uppercase: true
-    require_lowercase: true
-    require_numbers: true
-    require_symbols: false
+    max_age: 86400                # 预检请求缓存时间(秒)
 
 # 系统配置
 system:
-  default_page_size: 20
-  max_page_size: 100
-  audit_log_retention_days: 90
-  session_timeout: 1800s  # 30 minutes
+  # 系统信息
+  name: "信息管理系统"            # 系统名称
+  version: "1.0.0"               # 系统版本
+  description: "企业级信息管理平台" # 系统描述
   
-  # 默认管理员账号（首次启动时创建）
-  admin:
-    username: "admin"
-    email: "admin@example.com"
-    password: "admin123"  # 请在生产环境中修改
+  # 功能开关
+  features:
+    user_registration: true       # 是否允许用户注册
+    file_upload: true            # 是否允许文件上传
+    ocr_recognition: false       # 是否启用OCR识别
+    ai_assistance: false         # 是否启用AI辅助
+    data_export: true            # 是否允许数据导出
+    system_monitoring: true      # 是否启用系统监控
+  
+  # 默认设置
+  defaults:
+    page_size: 20                # 默认分页大小
+    language: "zh-CN"            # 默认语言
+    timezone: "Asia/Shanghai"    # 默认时区
+    date_format: "2006-01-02"    # 日期格式
+    time_format: "15:04:05"      # 时间格式
+
+# 监控配置
+monitoring:
+  enabled: true                   # 是否启用监控
+  metrics_path: "/metrics"        # 指标路径
+  health_check_path: "/health"    # 健康检查路径
+  
+  # 告警配置
+  alerts:
+    cpu_threshold: 80             # CPU使用率告警阈值(%)
+    memory_threshold: 80          # 内存使用率告警阈值(%)
+    disk_threshold: 90            # 磁盘使用率告警阈值(%)
+    error_rate_threshold: 5       # 错误率告警阈值(%)
+
+# 备份配置
+backup:
+  enabled: false                  # 是否启用自动备份
+  schedule: "0 2 * * *"          # 备份计划 (cron表达式)
+  retention_days: 30             # 备份保留天数
+  backup_path: "backups"         # 备份存储路径
+  
+  # 备份内容
+  include:
+    database: true                # 是否备份数据库
+    files: true                   # 是否备份文件
+    configs: true                 # 是否备份配置
+
+# 环境变量映射
+# 以下配置项可以通过环境变量覆盖，环境变量名格式为: IMS_<SECTION>_<KEY>
+# 例如: IMS_SERVER_PORT=8080, IMS_DATABASE_DRIVER=mysql, IMS_JWT_SECRET=your-secret
+
+# 生产环境建议:
+# 1. 修改JWT密钥为强随机字符串
+# 2. 使用MySQL或PostgreSQL数据库
+# 3. 启用HTTPS
+# 4. 配置邮件服务
+# 5. 设置强密码策略
+# 6. 启用监控和日志
+# 7. 配置定期备份
+# 8. 限制文件上传大小和类型
