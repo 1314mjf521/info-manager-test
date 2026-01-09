@@ -68,7 +68,6 @@ configs/config.prod.yaml
 
 # 上传文件
 uploads/
-files/
 
 # 文档生成
 docs/
