@@ -249,7 +249,6 @@ import {
   Key, View, Tickets
 } from '@element-plus/icons-vue'
 import http from '../../utils/request'
-import PermissionForm from '../../components/permissions/PermissionForm.vue'
 import type { Permission } from '../../types'
 
 // 响应式数据
@@ -267,7 +266,7 @@ const permissionDialogVisible = ref(false)
 const isEditPermission = ref(false)
 const permissionSubmitting = ref(false)
 
-const permissionForm = reactive({
+let permissionForm = reactive({
   id: null as number | null,
   name: '',
   displayName: '',
@@ -452,10 +451,6 @@ const handleSavePermission = async (formData: any) => {
   } finally {
     permissionSubmitting.value = false
   }
-}
-
-const updatePermissionForm = (newValue: any) => {
-  Object.assign(permissionForm, newValue)
 }
 
 // 辅助方法
