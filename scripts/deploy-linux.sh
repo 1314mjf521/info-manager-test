@@ -465,13 +465,33 @@ EOF
 configure_nginx() {
     log_header "配置Nginx"
     
+    # 检测Nginx配置目录结构
+    if [[ -d /etc/nginx/sites-available ]]; then
+        # Debian/Ubuntu风格
+        NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
+        NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
+        USE_SITES_STRUCTURE=true
+    else
+        # CentOS/RHEL风格
+        NGINX_SITES_AVAILABLE="/etc/nginx/conf.d"
+        NGINX_SITES_ENABLED="/etc/nginx/conf.d"
+        USE_SITES_STRUCTURE=false
+    fi
+    
     # 备份原配置
-    if [[ -f /etc/nginx/sites-available/default ]]; then
-        cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.backup
+    if [[ -f $NGINX_SITES_AVAILABLE/default ]] && [[ "$USE_SITES_STRUCTURE" == "true" ]]; then
+        cp $NGINX_SITES_AVAILABLE/default $NGINX_SITES_AVAILABLE/default.backup
+    fi
+    
+    # 设置配置文件名
+    if [[ "$USE_SITES_STRUCTURE" == "true" ]]; then
+        CONFIG_FILE="$NGINX_SITES_AVAILABLE/$PROJECT_NAME"
+    else
+        CONFIG_FILE="$NGINX_SITES_AVAILABLE/$PROJECT_NAME.conf"
     fi
     
     # 创建站点配置
-    cat > /etc/nginx/sites-available/$PROJECT_NAME << EOF
+    cat > "$CONFIG_FILE" << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -511,11 +531,12 @@ server {
 }
 EOF
 
-    # 启用站点
-    ln -sf /etc/nginx/sites-available/$PROJECT_NAME /etc/nginx/sites-enabled/
-    
-    # 删除默认站点
-    rm -f /etc/nginx/sites-enabled/default
+    # 启用站点（仅在使用sites结构时）
+    if [[ "$USE_SITES_STRUCTURE" == "true" ]]; then
+        ln -sf $NGINX_SITES_AVAILABLE/$PROJECT_NAME $NGINX_SITES_ENABLED/
+        # 删除默认站点
+        rm -f $NGINX_SITES_ENABLED/default
+    fi
     
     # 测试配置
     nginx -t
