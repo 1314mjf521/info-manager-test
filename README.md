@@ -69,12 +69,12 @@
 
 #### Linux/macOS
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-repo/info-management-system/main/scripts/one-click-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/1314mjf521/info-management-system/main/scripts/one-click-deploy.sh | bash
 ```
 
 #### Windows (PowerShell)
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-repo/info-management-system/main/scripts/one-click-deploy.ps1" -OutFile "deploy.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/1314mjf521/info-management-system/main/scripts/one-click-deploy.ps1" -OutFile "deploy.ps1"
 .\deploy.ps1
 ```
 
@@ -88,7 +88,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/your-repo/info-managem
 
 #### 2. 下载源码
 ```bash
-git clone https://github.com/your-repo/info-management-system.git
+git clone https://github.com/1314mjf521/info-management-system.git
 cd info-management-system
 ```
 
@@ -337,8 +337,8 @@ docker run -d -p 8080:8080 info-management-system
 
 ## 📞 支持与联系
 
-- **项目主页**: https://github.com/your-repo/info-management-system
-- **问题反馈**: https://github.com/your-repo/info-management-system/issues
+- **项目主页**: https://github.com/1314mjf521/info-management-system
+- **问题反馈**: https://github.com/1314mjf521/info-management-system/issues
 - **文档站点**: https://docs.example.com
 - **邮箱支持**: support@example.com
 
