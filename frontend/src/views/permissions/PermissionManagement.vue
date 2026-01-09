@@ -171,14 +171,70 @@
       :title="isEditPermission ? '编辑权限' : '新增权限'" 
       width="600px"
     >
-      <PermissionForm
-        v-model="permissionForm"
-        :parent-options="parentOptions"
-        :is-edit="isEditPermission"
-        :submitting="permissionSubmitting"
-        @submit="handleSavePermission"
-        @cancel="permissionDialogVisible = false"
-      />
+      <div class="permission-form">
+        <el-form
+          ref="formRef"
+          :model="permissionForm"
+          label-width="100px"
+        >
+          <el-form-item label="权限名称">
+            <el-input v-model="permissionForm.displayName" placeholder="请输入权限显示名称" />
+          </el-form-item>
+          
+          <el-form-item label="权限标识">
+            <el-input v-model="permissionForm.name" placeholder="请输入权限标识" />
+          </el-form-item>
+          
+          <el-form-item label="资源类型">
+            <el-select v-model="permissionForm.resource" placeholder="选择资源类型">
+              <el-option label="系统管理" value="system" />
+              <el-option label="用户管理" value="users" />
+              <el-option label="角色管理" value="roles" />
+              <el-option label="权限管理" value="permissions" />
+              <el-option label="工单管理" value="tickets" />
+              <el-option label="记录管理" value="records" />
+              <el-option label="文件管理" value="files" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="操作类型">
+            <el-select v-model="permissionForm.action" placeholder="选择操作类型">
+              <el-option label="查看" value="read" />
+              <el-option label="创建" value="create" />
+              <el-option label="修改" value="update" />
+              <el-option label="删除" value="delete" />
+              <el-option label="管理" value="manage" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="作用域">
+            <el-select v-model="permissionForm.scope" placeholder="选择作用域">
+              <el-option label="全部" value="all" />
+              <el-option label="部门" value="department" />
+              <el-option label="自己" value="own" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="描述">
+            <el-input 
+              v-model="permissionForm.description" 
+              type="textarea" 
+              placeholder="请输入权限描述"
+            />
+          </el-form-item>
+          
+          <el-form-item>
+            <el-button @click="permissionDialogVisible = false">取消</el-button>
+            <el-button 
+              type="primary" 
+              @click="handleSavePermission(permissionForm)"
+              :loading="permissionSubmitting"
+            >
+              {{ isEditPermission ? '更新' : '创建' }}
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -396,6 +452,10 @@ const handleSavePermission = async (formData: any) => {
   } finally {
     permissionSubmitting.value = false
   }
+}
+
+const updatePermissionForm = (newValue: any) => {
+  Object.assign(permissionForm, newValue)
 }
 
 // 辅助方法

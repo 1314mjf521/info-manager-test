@@ -5,14 +5,47 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
+# 安装必要工具
+RUN apk add --no-cache git
+
 # 复制前端依赖文件
 COPY frontend/package*.json ./
+
+# 配置npm镜像
+RUN npm config set registry https://registry.npmmirror.com
 
 # 安装依赖
 RUN npm ci --only=production=false
 
 # 复制前端源码
 COPY frontend/ ./
+
+# 修复vite配置以解决crypto问题
+RUN cat > vite.config.ts << 'EOF'
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
+  define: {
+    global: 'globalThis',
+  },
+  server: {
+    port: 5173,
+    host: '0.0.0.0',
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+  },
+})
+EOF
 
 # 构建前端
 RUN npm run build

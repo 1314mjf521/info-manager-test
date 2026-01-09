@@ -149,20 +149,46 @@ install_nodejs() {
     # 检查Node.js是否已安装
     if command -v node &> /dev/null; then
         NODE_VERSION=$(node --version)
+        NODE_MAJOR=$(echo $NODE_VERSION | sed 's/v//' | cut -d'.' -f1)
         log_info "Node.js已安装: $NODE_VERSION"
-        return 0
+        
+        # 检查版本是否足够新
+        if [[ $NODE_MAJOR -lt 16 ]]; then
+            log_warn "Node.js版本过低，需要升级到16+"
+        else
+            log_success "Node.js版本符合要求"
+            return 0
+        fi
     fi
     
     # 使用NodeSource仓库安装Node.js 18.x
     log_info "添加NodeSource仓库..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
     
     if command -v apt-get &> /dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
         apt-get install -y nodejs
     elif command -v yum &> /dev/null; then
-        yum install -y nodejs npm
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+        yum install -y nodejs
     elif command -v dnf &> /dev/null; then
-        dnf install -y nodejs npm
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+        dnf install -y nodejs
+    else
+        # 使用二进制安装
+        log_info "使用二进制文件安装Node.js..."
+        NODE_VERSION="18.19.0"
+        ARCH=$(uname -m)
+        
+        case $ARCH in
+            x86_64) ARCH="x64" ;;
+            aarch64) ARCH="arm64" ;;
+            *) log_error "不支持的架构: $ARCH"; return 1 ;;
+        esac
+        
+        cd /tmp
+        wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz"
+        tar -C /usr/local --strip-components=1 -xf "node-v${NODE_VERSION}-linux-${ARCH}.tar.xz"
+        rm -f "node-v${NODE_VERSION}-linux-${ARCH}.tar.xz"
     fi
     
     # 设置npm镜像
@@ -210,6 +236,17 @@ create_directories() {
 build_backend() {
     log_header "编译后端应用"
     
+    # 确保在项目根目录
+    if [[ ! -f "go.mod" ]]; then
+        log_error "未找到go.mod文件，请确保在项目根目录运行此脚本"
+        exit 1
+    fi
+    
+    if [[ ! -d "cmd/server" ]]; then
+        log_error "未找到cmd/server目录，请检查项目结构"
+        exit 1
+    fi
+    
     log_info "编译Go应用..."
     
     # 设置Go环境
@@ -220,6 +257,12 @@ build_backend() {
     # 编译应用
     go mod tidy
     CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $APP_DIR/bin/$PROJECT_NAME ./cmd/server
+    
+    # 检查编译结果
+    if [[ ! -f "$APP_DIR/bin/$PROJECT_NAME" ]]; then
+        log_error "编译失败，未生成可执行文件"
+        exit 1
+    fi
     
     # 设置执行权限
     chmod +x $APP_DIR/bin/$PROJECT_NAME
@@ -239,20 +282,96 @@ build_frontend() {
     
     cd frontend
     
+    # 修复vite配置以解决crypto.getRandomValues问题
+    log_info "修复前端配置..."
+    if [[ -f "vite.config.ts" ]]; then
+        # 备份原配置
+        cp vite.config.ts vite.config.ts.backup
+        
+        # 创建修复后的配置
+        cat > vite.config.ts << 'EOF'
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
+
+export default defineConfig({
+  plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
+  define: {
+    global: 'globalThis',
+  },
+  server: {
+    port: 5173,
+    host: '0.0.0.0',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router'],
+          elementPlus: ['element-plus'],
+        },
+      },
+    },
+  },
+})
+EOF
+        log_success "vite.config.ts已修复"
+    fi
+    
+    # 清理旧的依赖和缓存
+    log_info "清理依赖和缓存..."
+    rm -rf node_modules package-lock.json
+    npm cache clean --force
+    
+    # 配置npm镜像
+    npm config set registry https://registry.npmmirror.com
+    
     log_info "安装前端依赖..."
-    npm ci --production=false
+    # 直接使用npm install，因为我们删除了package-lock.json
+    npm install
+    
+    if [[ $? -ne 0 ]]; then
+        log_error "前端依赖安装失败"
+        cd ..
+        return 1
+    fi
     
     log_info "构建前端应用..."
     npm run build
+    
+    if [[ $? -ne 0 ]]; then
+        log_error "前端构建失败"
+        cd ..
+        return 1
+    fi
     
     # 复制构建文件到静态目录
     if [[ -d "dist" ]]; then
         cp -r dist/* $APP_DIR/static/
         chown -R $SERVICE_USER:$SERVICE_USER $APP_DIR/static
-        log_success "前端构建完成"
+        
+        # 显示构建统计
+        local file_count=$(find dist -type f | wc -l)
+        local total_size=$(du -sh dist | cut -f1)
+        log_success "前端构建完成: $file_count 个文件, 总大小: $total_size"
     else
         log_error "前端构建失败，未找到dist目录"
-        exit 1
+        cd ..
+        return 1
     fi
     
     cd ..
