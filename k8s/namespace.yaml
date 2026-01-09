@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: info-management-system
+  labels:
+    name: info-management-system
+    app: info-management-system

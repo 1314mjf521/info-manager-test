@@ -1,63 +1,73 @@
-# 多阶段构建 - 构建阶段
-FROM golang:1.23-alpine AS builder
+# 多阶段构建 Dockerfile
 
-# 设置工作目录
-WORKDIR /app
+# 阶段1: 构建前端
+FROM node:18-alpine AS frontend-builder
 
-# 设置Go代理为国内镜像
-ENV GOPROXY=https://mirrors.aliyun.com/goproxy/,direct
-ENV GOSUMDB=sum.golang.google.cn
+WORKDIR /app/frontend
 
-# 安装必要的包
+# 复制前端依赖文件
+COPY frontend/package*.json ./
+
+# 安装依赖
+RUN npm ci --only=production=false
+
+# 复制前端源码
+COPY frontend/ ./
+
+# 构建前端
+RUN npm run build
+
+# 阶段2: 构建后端
+FROM golang:1.21-alpine AS backend-builder
+
+# 安装必要工具
 RUN apk add --no-cache git ca-certificates tzdata
 
-# 复制go mod文件
+WORKDIR /app
+
+# 复制Go模块文件
 COPY go.mod go.sum ./
 
 # 下载依赖
 RUN go mod download
 
-# 复制源代码
+# 复制源码
 COPY . .
 
-# 构建应用
+# 构建后端应用
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
-# 运行阶段
+# 阶段3: 运行时镜像
 FROM alpine:latest
 
-# 安装ca-certificates和tzdata
+# 安装运行时依赖
 RUN apk --no-cache add ca-certificates tzdata
 
-# 设置时区
-ENV TZ=Asia/Shanghai
-
-# 创建非root用户
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+# 创建应用用户
+RUN addgroup -g 1001 -S app && \
+    adduser -S app -u 1001 -G app
 
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制二进制文件
-COPY --from=builder /app/main .
+# 从构建阶段复制文件
+COPY --from=backend-builder /app/main .
+COPY --from=frontend-builder /app/frontend/dist ./static
+COPY --chown=app:app configs/ ./configs/
 
-# 复制配置文件
-COPY --from=builder /app/configs ./configs
+# 创建必要目录
+RUN mkdir -p /app/logs /app/uploads /app/data && \
+    chown -R app:app /app
 
-# 创建日志目录
-RUN mkdir -p /app/logs && \
-    chown -R appuser:appgroup /app
-
-# 切换到非root用户
-USER appuser
+# 切换到应用用户
+USER app
 
 # 暴露端口
 EXPOSE 8080
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1
 
 # 启动应用
 CMD ["./main"]

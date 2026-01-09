@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: info-management-system
+data:
+  config.yaml: |
+    app:
+      name: "info-management-system"
+      mode: "prod"
+      port: 8080
+      
+    database:
+      type: "postgres"
+      host: "postgres-service"
+      port: 5432
+      name: "info_management"
+      user: "postgres"
+      password: "postgres123"
+      
+    redis:
+      host: "redis-service"
+      port: 6379
+      password: "redis123"
+      db: 0
+      
+    log:
+      level: "info"
+      file: "/app/logs/app.log"
+      max_size: 100
+      max_backups: 5
+      
+    upload:
+      path: "/app/uploads"
+      max_size: 10485760
+      
+    security:
+      jwt_secret: "your-jwt-secret-here"
+      cors_origins: ["*"]

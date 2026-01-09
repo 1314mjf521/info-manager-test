@@ -1,46 +1,385 @@
 # 部署脚本使用指南
 
-本项目提供了多个部署脚本，适用于不同的使用场景。以下是各个脚本的详细说明和使用方法。
+本项目提供了多个部署脚本，适用于不同的使用场景和平台。以下是各个脚本的详细说明和使用方法。
 
 ## 📋 脚本概览
 
-| 脚本名称 | 用途 | 平台 | 推荐场景 |
+| 脚本名称 | 平台 | 用途 | 推荐场景 |
 |---------|------|------|----------|
-| `rebuild-and-start.bat` | 快速重建和启动 | Windows | 日常开发 |
-| `quick-start.ps1` | 一键启动服务 | Windows | 快速启动 |
-| `full-stack-deploy.ps1` | 完整部署方案 | Windows | 生产部署 |
-| `install-and-start-frontend.ps1` | 前端专用脚本 | Windows | 前端开发 |
+| `rebuild-and-start.bat` | Windows | 快速重建和启动 | 日常开发 |
+| `quick-start.ps1` | Windows | 一键启动服务 | 快速启动 |
+| `full-stack-deploy.ps1` | Windows | 完整部署方案 | Windows生产 |
+| `install-and-start-frontend.ps1` | Windows | 前端专用脚本 | 前端开发 |
+| `deploy-linux.sh` | Linux | Linux服务器部署 | Linux生产 |
+| `docker-deploy.sh` | Linux/Windows | Docker容器化部署 | 容器化部署 |
+| `k8s-deploy.sh` | Kubernetes | K8s集群部署 | 大规模部署 |
+
+## 🐧 Linux服务器部署
+
+### 1. 传统Linux部署 (`deploy-linux.sh`)
+
+**最适合生产环境的Linux服务器部署**
+
+```bash
+# 基本部署
+sudo ./scripts/deploy-linux.sh
+
+# 指定参数部署
+sudo ./scripts/deploy-linux.sh prod 8080 3000 example.com true
+
+# 参数说明
+sudo ./scripts/deploy-linux.sh [模式] [后端端口] [前端端口] [域名] [SSL启用]
+```
+
+**功能特性**:
+- ✅ 自动检测Linux发行版 (Ubuntu/CentOS/Debian)
+- ✅ 自动安装Go和Node.js环境
+- ✅ 创建系统服务用户
+- ✅ 配置systemd服务
+- ✅ 配置Nginx反向代理
+- ✅ 可选SSL证书配置
+- ✅ 防火墙配置
+- ✅ 完整的权限管理
+
+**部署后管理**:
+```bash
+# 服务管理
+sudo systemctl start info-management-system
+sudo systemctl stop info-management-system
+sudo systemctl restart info-management-system
+sudo systemctl status info-management-system
+
+# 查看日志
+sudo journalctl -u info-management-system -f
+tail -f /var/log/info-management-system/app.log
+
+# Nginx管理
+sudo systemctl restart nginx
+sudo nginx -t
+```
+
+### 2. Docker容器化部署 (`docker-deploy.sh`)
+
+**现代化的容器部署方案**
+
+```bash
+# 基本部署
+./scripts/docker-deploy.sh
+
+# 生产环境部署
+./scripts/docker-deploy.sh prod example.com true
+
+# 开发环境部署
+./scripts/docker-deploy.sh dev localhost false
+```
+
+**功能特性**:
+- ✅ 多服务容器编排 (App + PostgreSQL + Redis + Nginx)
+- ✅ 数据持久化
+- ✅ 健康检查
+- ✅ 自动重启
+- ✅ 资源限制
+- ✅ 网络隔离
+
+**容器管理**:
+```bash
+# 查看状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 重启服务
+docker-compose restart
+
+# 更新应用
+docker-compose up -d --build
+
+# 备份数据
+docker-compose exec postgres pg_dump -U postgres info_management > backup.sql
+```
+
+### 3. Kubernetes集群部署 (`k8s-deploy.sh`)
+
+**企业级大规模部署方案**
+
+```bash
+# 部署到K8s集群
+./scripts/k8s-deploy.sh deploy v1.0.0 example.com
+
+# 设置端口转发 (本地测试)
+./scripts/k8s-deploy.sh port-forward
+
+# 清理资源
+./scripts/k8s-deploy.sh cleanup
+```
+
+**功能特性**:
+- ✅ 高可用部署 (多副本)
+- ✅ 自动扩缩容
+- ✅ 滚动更新
+- ✅ 健康检查和自愈
+- ✅ 服务发现
+- ✅ 负载均衡
+- ✅ 持久化存储
+
+**K8s管理**:
+```bash
+# 查看资源
+kubectl get all -n info-management-system
+
+# 扩缩容
+kubectl scale deployment info-management-app --replicas=5 -n info-management-system
+
+# 滚动更新
+kubectl set image deployment/info-management-app app=info-management-system:v2.0.0 -n info-management-system
+
+# 查看日志
+kubectl logs -f deployment/info-management-app -n info-management-system
+```
 
 ## 🚀 快速开始
 
-### 1. 最简单的启动方式
-
+### Windows开发环境
 ```batch
-# 双击运行或在命令行执行
+# 最简单的方式
 rebuild-and-start.bat
 ```
 
-**适用场景**: 日常开发，需要同时启动前后端
-**特点**: 
-- ✅ 自动编译后端
-- ✅ 自动安装前端依赖
-- ✅ 自动构建前端
-- ✅ 同时启动前后端服务
-- ✅ 支持中文显示
+### Linux生产环境
+```bash
+# 传统部署
+sudo ./scripts/deploy-linux.sh prod 8080 80 yourdomain.com true
 
-### 2. PowerShell 快速启动
+# 容器化部署
+./scripts/docker-deploy.sh prod yourdomain.com true
 
-```powershell
-# 在项目根目录执行
-.\scripts\quick-start.ps1
+# K8s部署
+./scripts/k8s-deploy.sh deploy latest yourdomain.com
 ```
 
-**适用场景**: 开发环境快速启动
-**特点**:
-- ✅ 环境检查
-- ✅ 智能依赖管理
-- ✅ 后台服务启动
-- ✅ 详细的启动信息
+## 🎯 部署方案选择
+
+### 开发环境
+- **Windows**: `rebuild-and-start.bat` 或 `quick-start.ps1`
+- **Linux**: `docker-deploy.sh dev`
+
+### 测试环境
+- **小规模**: `deploy-linux.sh test`
+- **容器化**: `docker-deploy.sh test`
+
+### 生产环境
+- **单机部署**: `deploy-linux.sh prod`
+- **容器化部署**: `docker-deploy.sh prod`
+- **集群部署**: `k8s-deploy.sh deploy`
+
+### 高可用部署
+- **Docker Swarm**: 基于 `docker-compose.yml` 扩展
+- **Kubernetes**: `k8s-deploy.sh deploy`
+
+## 📊 部署方案对比
+
+| 特性 | Linux传统 | Docker | Kubernetes |
+|------|-----------|--------|------------|
+| 部署复杂度 | 中等 | 简单 | 复杂 |
+| 资源占用 | 低 | 中等 | 高 |
+| 扩展性 | 低 | 中等 | 高 |
+| 维护成本 | 高 | 中等 | 低 |
+| 适用规模 | 小-中 | 小-中 | 中-大 |
+| 学习成本 | 低 | 中等 | 高 |
+
+## 🔧 环境要求
+
+### Linux传统部署
+- **系统**: Ubuntu 18.04+, CentOS 7+, Debian 9+
+- **权限**: root或sudo权限
+- **内存**: 最少2GB，推荐4GB+
+- **磁盘**: 最少10GB可用空间
+
+### Docker部署
+- **Docker**: 20.10+
+- **Docker Compose**: 1.29+
+- **内存**: 最少4GB，推荐8GB+
+- **磁盘**: 最少20GB可用空间
+
+### Kubernetes部署
+- **Kubernetes**: 1.20+
+- **kubectl**: 配置好的集群访问
+- **资源**: 最少2CPU/4GB内存的节点
+- **存储**: 支持PVC的存储类
+
+## 🛡️ 安全配置
+
+### SSL/TLS配置
+```bash
+# Linux传统部署 - 自动SSL
+sudo ./scripts/deploy-linux.sh prod 8080 80 yourdomain.com true
+
+# Docker部署 - 手动配置SSL证书
+# 将证书文件放在 ssl/ 目录下
+./scripts/docker-deploy.sh prod yourdomain.com true
+```
+
+### 防火墙配置
+```bash
+# Ubuntu/Debian
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+
+# CentOS/RHEL
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+```
+
+### 数据库安全
+```bash
+# 修改默认密码
+# 编辑配置文件中的数据库密码
+# 使用强密码和加密连接
+```
+
+## 📈 监控和日志
+
+### 系统监控
+```bash
+# 资源使用情况
+htop
+df -h
+free -h
+
+# 服务状态
+systemctl status info-management-system
+systemctl status nginx
+```
+
+### 应用日志
+```bash
+# 传统部署
+tail -f /var/log/info-management-system/app.log
+
+# Docker部署
+docker-compose logs -f app
+
+# K8s部署
+kubectl logs -f deployment/info-management-app -n info-management-system
+```
+
+### 性能监控
+```bash
+# 网络连接
+netstat -tlnp | grep :8080
+
+# 进程监控
+ps aux | grep info-management
+
+# 磁盘IO
+iostat -x 1
+```
+
+## 🔄 备份和恢复
+
+### 数据备份
+```bash
+# PostgreSQL备份
+pg_dump -U postgres -h localhost info_management > backup.sql
+
+# Docker环境备份
+docker-compose exec postgres pg_dump -U postgres info_management > backup.sql
+
+# 文件备份
+tar -czf uploads_backup.tar.gz /app/uploads/
+```
+
+### 数据恢复
+```bash
+# PostgreSQL恢复
+psql -U postgres -h localhost info_management < backup.sql
+
+# Docker环境恢复
+docker-compose exec -T postgres psql -U postgres -d info_management < backup.sql
+```
+
+## 🚨 故障排除
+
+### 常见问题
+
+#### 1. 端口被占用
+```bash
+# 查看端口占用
+netstat -tlnp | grep :8080
+lsof -i :8080
+
+# 杀死占用进程
+sudo kill -9 <PID>
+```
+
+#### 2. 权限问题
+```bash
+# 检查文件权限
+ls -la /opt/info-management-system/
+
+# 修复权限
+sudo chown -R app:app /opt/info-management-system/
+sudo chmod 755 /opt/info-management-system/bin/info-management-system
+```
+
+#### 3. 数据库连接失败
+```bash
+# 检查数据库状态
+sudo systemctl status postgresql
+docker-compose ps postgres
+
+# 测试连接
+psql -U postgres -h localhost -d info_management
+```
+
+#### 4. Nginx配置错误
+```bash
+# 测试配置
+sudo nginx -t
+
+# 重新加载配置
+sudo nginx -s reload
+
+# 查看错误日志
+sudo tail -f /var/log/nginx/error.log
+```
+
+## 📚 最佳实践
+
+### 1. 生产部署建议
+- 使用专用的数据库服务器
+- 配置SSL证书
+- 设置定期备份
+- 配置监控告警
+- 使用CDN加速静态资源
+
+### 2. 安全建议
+- 定期更新系统和依赖
+- 使用强密码
+- 限制SSH访问
+- 配置防火墙规则
+- 定期安全审计
+
+### 3. 性能优化
+- 配置数据库连接池
+- 启用Gzip压缩
+- 使用Redis缓存
+- 优化数据库查询
+- 配置负载均衡
+
+### 4. 运维建议
+- 建立完整的部署文档
+- 设置自动化部署流程
+- 配置日志轮转
+- 建立灾备方案
+- 定期性能测试
+
+这个完整的部署指南涵盖了从开发到生产的各种部署场景，选择适合你环境的部署方案即可！
 
 ## 🛠️ 详细脚本说明
 
