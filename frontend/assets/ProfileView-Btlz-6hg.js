@@ -1,0 +1,2 @@
+import{y as s,z as t,B as o,A as r}from"./vendor-CjKLjCsc.js";import{_ as a}from"./_plugin-vue_export-helper-DlAUqK2U.js";const n={class:"profile-view"},_=s({__name:"ProfileView",setup(i){return(l,e)=>(r(),t("div",n,[...e[0]||(e[0]=[o("h1",null,"个人资料",-1),o("p",null,"个人资料功能开发中",-1)])]))}}),f=a(_,[["__scopeId","data-v-87f7d4b1"]]);export{f as default};
+//# sourceMappingURL=ProfileView-Btlz-6hg.js.map

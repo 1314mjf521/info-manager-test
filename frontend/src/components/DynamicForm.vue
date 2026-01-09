@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="dynamic-form">
     <el-form-item
       v-for="field in fields"
@@ -118,8 +118,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
+import { useAuthStore } from '../stores/auth'
+import { API_CONFIG, API_ENDPOINTS } from '../config/api'
 
 interface DynamicField {
   name: string

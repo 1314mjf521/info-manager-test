@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="role-management">
     <el-card>
       <template #header>
@@ -584,8 +584,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, RefreshRight, Upload, ArrowDown, UploadFilled, Document, User, Check, Minus } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { API_ENDPOINTS } from '@/config/api'
+import { http } from '../../utils/request'
+import { API_ENDPOINTS } from '../../config/api'
 import dayjs from 'dayjs'
 
 // 响应式数据

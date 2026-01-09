@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-assign">
     <div class="page-header">
       <div class="header-left">
@@ -151,9 +151,9 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { ticketApi } from '@/api/ticket'
-import { userApi } from '@/api/user'
-import { formatDateTime } from '@/utils/date'
+import { ticketApi } from '../../api/ticket'
+import { userApi } from '../../api/user'
+import { formatDateTime } from '../../utils/date'
 
 const route = useRoute()
 const router = useRouter()

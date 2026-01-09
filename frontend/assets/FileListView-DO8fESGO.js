@@ -1,0 +1,2 @@
+import{y as t,z as o,B as s,A as a}from"./vendor-CjKLjCsc.js";import{_ as i}from"./_plugin-vue_export-helper-DlAUqK2U.js";const n={class:"file-list"},l=t({__name:"FileListView",setup(r){return(_,e)=>(a(),o("div",n,[...e[0]||(e[0]=[s("h1",null,"文件管理",-1),s("p",null,"文件管理功能开发中",-1)])]))}}),f=i(l,[["__scopeId","data-v-80fa3e5c"]]);export{f as default};
+//# sourceMappingURL=FileListView-DO8fESGO.js.map

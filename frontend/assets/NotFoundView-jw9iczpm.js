@@ -1,0 +1,2 @@
+import{y as n,z as s,B as e,R as r,J as a,al as l,O as d,A as p}from"./vendor-CjKLjCsc.js";import{_}from"./_plugin-vue_export-helper-DlAUqK2U.js";const u={class:"not-found"},i=n({__name:"NotFoundView",setup(m){return(f,o)=>{const t=l("router-link");return p(),s("div",u,[o[1]||(o[1]=e("h1",null,"404",-1)),o[2]||(o[2]=e("p",null,"页面不存在",-1)),r(t,{to:"/"},{default:a(()=>[...o[0]||(o[0]=[d("返回首页",-1)])]),_:1})])}}}),N=_(i,[["__scopeId","data-v-ace41554"]]);export{N as default};
+//# sourceMappingURL=NotFoundView-jw9iczpm.js.map

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profile-view">
     <el-row :gutter="20">
       <!-- 个人信息 -->
@@ -200,9 +200,9 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { useAuthStore } from '@/stores/auth'
-import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
+import { http } from '../../utils/request'
+import { useAuthStore } from '../../stores/auth'
+import { API_CONFIG, API_ENDPOINTS } from '../../config/api'
 import dayjs from 'dayjs'
 
 const authStore = useAuthStore()

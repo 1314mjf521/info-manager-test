@@ -397,6 +397,15 @@ func (a *App) initRouter() {
 			files.GET("/ocr/languages", a.ocrHandler.GetSupportedLanguages)
 		}
 
+		// 仪表盘路由
+		dashboard := v1.Group("/dashboard")
+		dashboard.Use(middleware.AuthMiddleware(a.authService))
+		{
+			dashboard.GET("/stats", a.dashboardHandler.GetDashboardStats)
+			dashboard.GET("/recent-records", a.dashboardHandler.GetRecentRecords)
+			dashboard.GET("/system-info", a.dashboardHandler.GetSystemInfo)
+		}
+
 		// 导出路由
 		export := v1.Group("/export")
 		export.Use(middleware.AuthMiddleware(a.authService))
@@ -531,6 +540,19 @@ func (a *App) initRouter() {
 
 			// 系统指标（需要管理员权限）
 			system.GET("/metrics", middleware.RequireSystemPermission(a.permissionService, "manage"), a.systemHandler.GetSystemMetrics)
+		}
+
+		// Token管理路由
+		tokens := v1.Group("/tokens")
+		tokens.Use(middleware.AuthMiddleware(a.authService))
+		{
+			tokens.GET("", a.systemHandler.GetTokens)
+			tokens.POST("", a.systemHandler.CreateToken)
+			tokens.PUT("/:id/renew", a.systemHandler.RenewToken)
+			tokens.DELETE("/:id", a.systemHandler.RevokeToken)
+			tokens.PUT("/:id/disable", a.systemHandler.DisableToken)
+			tokens.PUT("/:id/enable", a.systemHandler.EnableToken)
+			tokens.POST("/:id/regenerate", a.systemHandler.RegenerateToken)
 		}
 
 		// 日志路由

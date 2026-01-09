@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="user-management">
     <el-card>
       <template #header>
@@ -440,8 +440,8 @@ import {
   Document, 
   CopyDocument 
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { API_ENDPOINTS } from '@/config/api'
+import { http } from '../../utils/request'
+import { API_ENDPOINTS } from '../../config/api'
 import dayjs from 'dayjs'
 
 // 响应式数据

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="permission-management">
     <el-card>
       <template #header>
@@ -192,9 +192,9 @@ import {
   Monitor, DataAnalysis, Folder, Files, ChatDotRound, 
   Key, View, Tickets
 } from '@element-plus/icons-vue'
-import http from '@/utils/request'
-import PermissionForm from '@/components/permissions/PermissionForm.vue'
-import type { Permission } from '@/types'
+import http from '../../utils/request'
+import PermissionForm from '../../components/permissions/PermissionForm.vue'
+import type { Permission } from '../../types'
 
 // 响应式数据
 const loading = ref(false)

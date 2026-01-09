@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="record-detail">
     <el-card>
       <template #header>
@@ -186,9 +186,9 @@ import {
   List,
   Loading
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { useAuthStore } from '@/stores/auth'
-import { API_ENDPOINTS, API_CONFIG } from '@/config/api'
+import { http } from '../../utils/request'
+import { useAuthStore } from '../../stores/auth'
+import { API_ENDPOINTS, API_CONFIG } from '../../config/api'
 import dayjs from 'dayjs'
 
 // 简单图片预览组件 - 参考文件管理组件的实现

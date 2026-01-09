@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-config">
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -177,8 +177,8 @@ import {
   Check as CircleCheck,
   Close as CircleClose
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime } from '@/utils/format'
+import { http } from '../../utils/http'
+import { formatTime } from '../../utils/format'
 import AIConfigForm from './AIConfigForm.vue'
 
 // 类型定义

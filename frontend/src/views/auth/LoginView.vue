@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
@@ -56,8 +56,8 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
+import { useAuthStore } from '../../stores/auth'
+import { API_CONFIG, API_ENDPOINTS } from '../../config/api'
 
 const router = useRouter()
 const authStore = useAuthStore()

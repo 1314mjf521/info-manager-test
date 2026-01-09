@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-management">
     <!-- 页面头部 -->
     <div class="page-header">
@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { http } from '@/utils/http'
+import { http } from '../../utils/http'
 import {
   Avatar,
   Plus,
@@ -119,12 +119,12 @@ import {
 } from '@element-plus/icons-vue'
 
 // 导入子组件
-import AIChatSimple from '@/components/ai/AIChatSimple.vue'
-import AIRecordOptimizer from '@/components/ai/AIRecordOptimizer.vue'
-import AISpeechToText from '@/components/ai/AISpeechToText.vue'
-import AIConfigSimple from '@/components/ai/AIConfigSimple.vue'
-import AIStats from '@/components/ai/AIStats.vue'
-import AIConfigForm from '@/components/ai/AIConfigForm.vue'
+import AIChatSimple from '../../components/ai/AIChatSimple.vue'
+import AIRecordOptimizer from '../../components/ai/AIRecordOptimizer.vue'
+import AISpeechToText from '../../components/ai/AISpeechToText.vue'
+import AIConfigSimple from '../../components/ai/AIConfigSimple.vue'
+import AIStats from '../../components/ai/AIStats.vue'
+import AIConfigForm from '../../components/ai/AIConfigForm.vue'
 
 // 响应式数据
 const activeTab = ref('chat')

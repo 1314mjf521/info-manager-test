@@ -1,14 +1,13 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import type { RouteMeta } from '@/types'
+import type { RouteMeta } from '../types'
 
 // 路由配置
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/auth/LoginView.vue'),
+    component: () => import('../views/auth/LoginView.vue'),
     meta: {
       title: '登录',
       hidden: true
@@ -17,7 +16,7 @@ const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: () => import('@/views/auth/RegisterView.vue'),
+    component: () => import('../views/auth/RegisterView.vue'),
     meta: {
       title: '注册',
       hidden: true
@@ -26,13 +25,13 @@ const routes = [
   {
     path: '/',
     name: 'Layout',
-    component: () => import('@/layout/MainLayout.vue'),
+    component: () => import('../layout/MainLayout.vue'),
     redirect: '/dashboard',
     children: [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: () => import('@/views/dashboard/DashboardView.vue'),
+        component: () => import('../views/dashboard/DashboardView.vue'),
         meta: {
           title: '仪表板',
           icon: 'Dashboard'
@@ -41,7 +40,7 @@ const routes = [
       {
         path: 'records',
         name: 'Records',
-        component: () => import('@/views/records/RecordListView.vue'),
+        component: () => import('../views/records/RecordListView.vue'),
         meta: {
           title: '记录管理',
           icon: 'Document',
@@ -51,7 +50,7 @@ const routes = [
       {
         path: 'records/create',
         name: 'RecordCreate',
-        component: () => import('@/views/records/RecordFormView.vue'),
+        component: () => import('../views/records/RecordFormView.vue'),
         meta: {
           title: '创建记录',
           hidden: true,
@@ -61,7 +60,7 @@ const routes = [
       {
         path: 'records/:id',
         name: 'RecordDetail',
-        component: () => import('@/views/records/RecordDetailView.vue'),
+        component: () => import('../views/records/RecordDetailView.vue'),
         meta: {
           title: '记录详情',
           hidden: true,
@@ -71,7 +70,7 @@ const routes = [
       {
         path: 'records/:id/edit',
         name: 'RecordEdit',
-        component: () => import('@/views/records/RecordFormView.vue'),
+        component: () => import('../views/records/RecordFormView.vue'),
         meta: {
           title: '编辑记录',
           hidden: true,
@@ -81,7 +80,7 @@ const routes = [
       {
         path: 'record-types',
         name: 'RecordTypes',
-        component: () => import('@/views/record-types/RecordTypeListView.vue'),
+        component: () => import('../views/record-types/RecordTypeListView.vue'),
         meta: {
           title: '记录类型',
           icon: 'Collection',
@@ -91,7 +90,7 @@ const routes = [
       {
         path: 'files',
         name: 'Files',
-        component: () => import('@/views/files/FileListView.vue'),
+        component: () => import('../views/files/FileListView.vue'),
         meta: {
           title: '文件管理',
           icon: 'Folder',
@@ -101,7 +100,7 @@ const routes = [
       {
         path: 'tickets',
         name: 'Tickets',
-        component: () => import('@/views/tickets/TicketListView.vue'),
+        component: () => import('../views/tickets/TicketListView.vue'),
         meta: {
           title: '工单管理',
           icon: 'Tickets',
@@ -111,16 +110,25 @@ const routes = [
       {
         path: 'tickets/test',
         name: 'TicketTest',
-        component: () => import('@/views/tickets/TicketTestView.vue'),
+        component: () => import('../views/test/TicketApiTest.vue'),
         meta: {
-          title: '工单测试',
+          title: '工单API测试',
+          hidden: true
+        } as RouteMeta
+      },
+      {
+        path: 'tickets/workflow-test',
+        name: 'TicketWorkflowTest',
+        component: () => import('../views/test/TicketWorkflowTest.vue'),
+        meta: {
+          title: '工单流程测试',
           hidden: true
         } as RouteMeta
       },
       {
         path: 'tickets/debug',
         name: 'TicketDebug',
-        component: () => import('@/views/tickets/TicketTestSimple.vue'),
+        component: () => import('../views/tickets/TicketTestSimple.vue'),
         meta: {
           title: '权限调试',
           hidden: true
@@ -129,7 +137,7 @@ const routes = [
       {
         path: 'tickets/create',
         name: 'TicketCreate',
-        component: () => import('@/views/tickets/TicketFormView.vue'),
+        component: () => import('../views/tickets/TicketFormView.vue'),
         meta: {
           title: '创建工单',
           hidden: true,
@@ -139,7 +147,7 @@ const routes = [
       {
         path: 'tickets/:id',
         name: 'TicketDetail',
-        component: () => import('@/views/tickets/TicketDetailView.vue'),
+        component: () => import('../views/tickets/TicketDetailView.vue'),
         meta: {
           title: '工单详情',
           hidden: true,
@@ -149,7 +157,7 @@ const routes = [
       {
         path: 'tickets/:id/assign',
         name: 'TicketAssign',
-        component: () => import('@/views/tickets/TicketAssignView.vue'),
+        component: () => import('../views/tickets/TicketAssignView.vue'),
         meta: {
           title: '分配工单',
           hidden: true,
@@ -159,7 +167,7 @@ const routes = [
       {
         path: 'tickets/:id/edit',
         name: 'TicketEdit',
-        component: () => import('@/views/tickets/TicketFormView.vue'),
+        component: () => import('../views/tickets/TicketFormView.vue'),
         meta: {
           title: '编辑工单',
           hidden: true,
@@ -169,7 +177,7 @@ const routes = [
       {
         path: 'export',
         name: 'Export',
-        component: () => import('@/views/export/ExportView.vue'),
+        component: () => import('../views/export/ExportView.vue'),
         meta: {
           title: '数据导出',
           icon: 'Download',
@@ -179,7 +187,7 @@ const routes = [
       {
         path: 'users',
         name: 'Users',
-        component: () => import('@/views/admin/UserManagement.vue'),
+        component: () => import('../views/admin/UserManagement.vue'),
         meta: {
           title: '用户管理',
           icon: 'User',
@@ -189,7 +197,7 @@ const routes = [
       {
         path: 'roles',
         name: 'Roles',
-        component: () => import('@/views/admin/RoleManagement.vue'),
+        component: () => import('../views/admin/RoleManagement.vue'),
         meta: {
           title: '角色管理',
           icon: 'UserFilled',
@@ -199,7 +207,7 @@ const routes = [
       {
         path: 'permissions',
         name: 'Permissions',
-        component: () => import('@/views/permissions/PermissionManagement.vue'),
+        component: () => import('../views/permissions/PermissionManagement.vue'),
         meta: {
           title: '权限管理',
           icon: 'Key',
@@ -209,7 +217,7 @@ const routes = [
       {
         path: 'ai',
         name: 'AI',
-        component: () => import('@/views/ai/AIManagement.vue'),
+        component: () => import('../views/ai/AIManagement.vue'),
         meta: {
           title: 'AI功能',
           icon: 'Avatar',
@@ -219,7 +227,7 @@ const routes = [
       {
         path: 'system',
         name: 'System',
-        component: () => import('@/views/system/SystemView.vue'),
+        component: () => import('../views/system/SystemView.vue'),
         meta: {
           title: '系统管理',
           icon: 'Setting',
@@ -229,7 +237,7 @@ const routes = [
       {
         path: 'profile',
         name: 'Profile',
-        component: () => import('@/views/profile/ProfileView.vue'),
+        component: () => import('../views/profile/ProfileView.vue'),
         meta: {
           title: '个人资料',
           hidden: true
@@ -238,7 +246,7 @@ const routes = [
       {
         path: 'debug/login',
         name: 'LoginDebug',
-        component: () => import('@/views/debug/LoginDebugView.vue'),
+        component: () => import('../views/debug/LoginDebugView.vue'),
         meta: {
           title: '登录调试',
           hidden: true
@@ -249,7 +257,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/error/NotFoundView.vue'),
+    component: () => import('../views/error/NotFoundView.vue'),
     meta: {
       title: '页面不存在',
       hidden: true
@@ -264,6 +272,8 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach(async (to, from, next) => {
+  // 动态导入 auth store 以避免循环依赖
+  const { useAuthStore } = await import('../stores/auth')
   const authStore = useAuthStore()
   
   // 设置页面标题
@@ -350,3 +360,4 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+

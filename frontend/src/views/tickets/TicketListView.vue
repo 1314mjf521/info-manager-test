@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-list">
     <div class="page-header">
       <h1>工单管理</h1>
@@ -168,15 +168,16 @@
                 编辑
               </el-button>
 
-              <!-- 分配工单 -->
-              <el-button 
-                v-if="ticketPermissions.canAssignTickets() && ['submitted', 'assigned'].includes(row.status)"
-                size="small" 
-                type="warning"
-                @click.stop="assignTicket(row)"
-              >
-                分配
-              </el-button>
+              <!-- 动态显示下一步操作 -->
+              <template v-for="action in getNextActions(row)" :key="action.value">
+                <el-button 
+                  size="small" 
+                  :type="action.type"
+                  @click.stop="handleNextAction(row, action)"
+                >
+                  {{ action.label }}
+                </el-button>
+              </template>
 
               <!-- 更多操作下拉菜单 -->
               <el-dropdown 
@@ -309,10 +310,10 @@ import {
   Plus, Search, Upload, Download, ArrowDown, UploadFilled,
   Tickets, Clock, Check, Close, WarningFilled, InfoFilled
 } from '@element-plus/icons-vue'
-import { ticketApi } from '@/api/ticket'
-import { useTicketPermissions } from '@/utils/ticketPermissions'
-import { useAuthStore } from '@/stores/auth'
-import { formatDateTime } from '@/utils/date'
+import { ticketApi } from '../../api/ticket'
+import { useTicketPermissions } from '../../utils/ticketPermissions'
+import { useAuthStore } from '../../stores/auth'
+import { formatDateTime } from '../../utils/date'
 
 const router = useRouter()
 const ticketPermissions = useTicketPermissions()
@@ -545,7 +546,245 @@ const assignTicket = async (ticket: any) => {
   router.push(`/tickets/${ticket.id}/assign`)
 }
 
-// 获取更多操作选项
+// 获取下一步操作选项
+const getNextActions = (ticket: any) => {
+  const actions = []
+  
+  // 根据工单状态和用户权限显示相应的下一步操作
+  switch (ticket.status) {
+    case 'submitted':
+      // 已提交状态：可以分配
+      if (ticketPermissions.canAssignTickets()) {
+        actions.push({ 
+          value: 'assign', 
+          label: '分配工单', 
+          type: 'warning' 
+        })
+      }
+      break
+      
+    case 'assigned':
+      // 已分配状态：处理人可以接受或拒绝
+      if (ticket.assignee_id === currentUserId.value) {
+        if (ticketPermissions.canAcceptTickets()) {
+          actions.push({ 
+            value: 'accept', 
+            label: '接受工单', 
+            type: 'success' 
+          })
+        }
+        if (ticketPermissions.canRejectTickets()) {
+          actions.push({ 
+            value: 'reject', 
+            label: '拒绝工单', 
+            type: 'danger' 
+          })
+        }
+      }
+      // 管理员可以重新分配
+      if (ticketPermissions.canAssignTickets()) {
+        actions.push({ 
+          value: 'reassign', 
+          label: '重新分配', 
+          type: 'warning' 
+        })
+      }
+      break
+      
+    case 'accepted':
+      // 已接受状态：需要先审批才能开始处理
+      if (ticketPermissions.canApproveTickets()) {
+        actions.push({ 
+          value: 'approve', 
+          label: '审批通过', 
+          type: 'primary' 
+        })
+        actions.push({ 
+          value: 'rejectApproval', 
+          label: '审批拒绝', 
+          type: 'danger' 
+        })
+      }
+      break
+      
+    case 'approved':
+      // 已审批状态：可以开始处理
+      if (ticketPermissions.canChangeStatus('progress') && ticket.assignee_id === currentUserId.value) {
+        actions.push({ 
+          value: 'start', 
+          label: '开始处理', 
+          type: 'primary' 
+        })
+      }
+      break
+      
+    case 'progress':
+      // 处理中状态：可以挂起或解决
+      if (ticket.assignee_id === currentUserId.value) {
+        if (ticketPermissions.canChangeStatus('pending')) {
+          actions.push({ 
+            value: 'pending', 
+            label: '挂起工单', 
+            type: 'warning' 
+          })
+        }
+        if (ticketPermissions.canChangeStatus('resolved')) {
+          actions.push({ 
+            value: 'resolve', 
+            label: '解决工单', 
+            type: 'success' 
+          })
+        }
+      }
+      break
+      
+    case 'pending':
+      // 挂起状态：可以继续处理或解决
+      if (ticket.assignee_id === currentUserId.value) {
+        if (ticketPermissions.canChangeStatus('progress')) {
+          actions.push({ 
+            value: 'resume', 
+            label: '继续处理', 
+            type: 'primary' 
+          })
+        }
+        if (ticketPermissions.canChangeStatus('resolved')) {
+          actions.push({ 
+            value: 'resolve', 
+            label: '解决工单', 
+            type: 'success' 
+          })
+        }
+      }
+      break
+      
+    case 'resolved':
+      // 已解决状态：可以关闭
+      if (ticketPermissions.canChangeStatus('closed')) {
+        actions.push({ 
+          value: 'close', 
+          label: '关闭工单', 
+          type: 'info' 
+        })
+      }
+      break
+      
+    case 'closed':
+      // 已关闭状态：可以重新打开
+      if (ticketPermissions.canReopenTickets()) {
+        actions.push({ 
+          value: 'reopen', 
+          label: '重新打开', 
+          type: 'warning' 
+        })
+      }
+      break
+      
+    case 'rejected':
+    case 'returned':
+      // 被拒绝或退回状态：创建人可以重新提交
+      if (ticket.creator_id === currentUserId.value) {
+        actions.push({ 
+          value: 'resubmit', 
+          label: '重新提交', 
+          type: 'primary' 
+        })
+      }
+      break
+  }
+  
+  return actions
+}
+
+// 处理下一步操作
+const handleNextAction = async (ticket: any, action: any) => {
+  try {
+    let response
+    switch (action.value) {
+      case 'assign':
+      case 'reassign':
+        // 跳转到分配页面
+        router.push(`/tickets/${ticket.id}/assign`)
+        return
+        
+      case 'accept':
+        response = await ticketApi.acceptTicket(ticket.id)
+        ElMessage.success('工单接受成功')
+        break
+        
+      case 'reject':
+        // 拒绝工单需要提供原因
+        const reason = await ElMessageBox.prompt('请输入拒绝原因', '拒绝工单', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          inputPattern: /.+/,
+          inputErrorMessage: '拒绝原因不能为空'
+        })
+        response = await ticketApi.rejectTicket(ticket.id, reason.value)
+        ElMessage.success('工单拒绝成功')
+        break
+        
+      case 'approve':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'approved')
+        ElMessage.success('工单审批成功')
+        break
+        
+      case 'rejectApproval':
+        // 审批拒绝需要提供原因
+        const approvalReason = await ElMessageBox.prompt('请输入拒绝原因', '审批拒绝', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          inputPattern: /.+/,
+          inputErrorMessage: '拒绝原因不能为空'
+        })
+        response = await ticketApi.updateTicketStatus(ticket.id, 'rejected', `审批拒绝: ${approvalReason.value}`)
+        ElMessage.success('审批拒绝成功')
+        break
+        
+      case 'start':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'progress')
+        ElMessage.success('工单已开始处理')
+        break
+        
+      case 'pending':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'pending')
+        ElMessage.success('工单已挂起')
+        break
+        
+      case 'resume':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'progress')
+        ElMessage.success('工单已恢复处理')
+        break
+        
+      case 'resolve':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'resolved')
+        ElMessage.success('工单已解决')
+        break
+        
+      case 'close':
+        response = await ticketApi.updateTicketStatus(ticket.id, 'closed')
+        ElMessage.success('工单已关闭')
+        break
+        
+      case 'reopen':
+        response = await ticketApi.reopenTicket(ticket.id)
+        ElMessage.success('工单已重新打开')
+        break
+        
+      case 'resubmit':
+        response = await ticketApi.resubmitTicket(ticket.id)
+        ElMessage.success('工单重新提交成功')
+        break
+    }
+    
+    // 刷新数据
+    loadTickets()
+    loadStatistics()
+  } catch (error) {
+    console.error('操作失败:', error)
+    ElMessage.error('操作失败')
+  }
+}
 const getMoreActions = (ticket: any) => {
   const actions = []
   

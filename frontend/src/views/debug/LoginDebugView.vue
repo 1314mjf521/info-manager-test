@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="debug-container">
     <div class="debug-card">
       <h2>登录跳转调试页面</h2>
@@ -41,7 +41,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="assignment-rules">
     <div class="page-header">
       <h1>工单自动分配规则</h1>
@@ -70,8 +70,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
-import { ticketApi } from '@/api/ticket'
-import { userApi } from '@/api/user'
+import { ticketApi } from '../../api/ticket'
+import { userApi } from '../../api/user'
 
 const loading = ref(false)
 const saving = ref(false)

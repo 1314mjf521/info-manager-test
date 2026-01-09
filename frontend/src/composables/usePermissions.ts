@@ -1,6 +1,6 @@
-import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import http from '@/utils/request'
+﻿import { computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import http from '../utils/request'
 
 /**
  * 权限管理组合式函数

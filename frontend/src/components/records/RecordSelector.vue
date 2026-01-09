@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="record-selector">
     <!-- 搜索工具栏 -->
     <div class="search-toolbar">
@@ -97,8 +97,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime } from '@/utils/format'
+import { http } from '../../utils/http'
+import { formatTime } from '../../utils/format'
 
 // Emits
 const emit = defineEmits<{

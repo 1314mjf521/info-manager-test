@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-form">
     <div class="page-header">
       <h1>{{ isEdit ? '编辑工单' : '创建工单' }}</h1>
@@ -188,9 +188,10 @@ import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, InfoFilled } from '@element-plus/icons-vue'
-import { ticketApi } from '@/api/ticket'
-import { userApi } from '@/api/user'
-import { useAuthStore } from '@/stores/auth'
+import { ticketApi } from '../../api/ticket'
+import { userApi } from '../../api/user'
+import { useAuthStore } from '../../stores/auth'
+import { API_CONFIG } from '../../config/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -253,7 +254,7 @@ const canAssign = computed(() => {
 })
 
 const uploadUrl = computed(() => {
-  return ticketId.value ? `/api/v1/tickets/${ticketId.value}/attachments` : ''
+  return ticketId.value ? `${API_CONFIG.BASE_URL}${API_CONFIG.VERSION}/tickets/${ticketId.value}/attachments` : ''
 })
 
 const uploadHeaders = computed(() => {

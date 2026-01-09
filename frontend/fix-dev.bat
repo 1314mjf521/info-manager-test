@@ -1,0 +1,9 @@
+@echo off
+echo 修复前端开发环境...
+
+echo 清理缓存...
+if exist node_modules\.vite rmdir /s /q node_modules\.vite
+if exist dist rmdir /s /q dist
+
+echo 重新启动开发服务器...
+npm run dev

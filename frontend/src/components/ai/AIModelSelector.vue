@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-model-selector">
     <div class="selector-header">
       <div class="selector-info">
@@ -179,7 +179,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { http } from '@/utils/http'
+import { http } from '../../utils/http'
 
 // Props
 interface Props {

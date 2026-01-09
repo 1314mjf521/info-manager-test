@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>工单API调试</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>工单API调试工具</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api/v1';
+        let authToken = '';
+        let testTicketId = null;
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('results').appendChild(div);
+            console.log(message);
+        }
+        
+        async function testAPI() {
+            try {
+                // 1. 登录
+                log('开始登录测试...');
+                const loginResponse = await axios.post(`${API_BASE_URL}/auth/login`, {
+                    username: 'admin',
+                    password: 'admin123'
+                });
+                
+                if (loginResponse.data.success) {
+                    authToken = loginResponse.data.data.token;
+                    log('登录成功，Token: ' + authToken.substring(0, 20) + '...', 'success');
+                    
+                    // 设置默认认证头
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
+                    
+                    // 2. 创建工单
+                    log('创建测试工单...');
+                    const createResponse = await axios.post(`${API_BASE_URL}/tickets`, {
+                        title: '调试测试工单',
+                        type: 'bug',
+                        priority: 'normal',
+                        description: '用于API调试的测试工单'
+                    });
+                    
+                    if (createResponse.data.success) {
+                        testTicketId = createResponse.data.data.id;
+                        log(`工单创建成功，ID: ${testTicketId}, 状态: ${createResponse.data.data.status}`, 'success');
+                        
+                        // 3. 分配工单
+                        log('分配工单...');
+                        const assignResponse = await axios.post(`${API_BASE_URL}/tickets/${testTicketId}/assign`, {
+                            assignee_id: 1,
+                            comment: '调试测试分配'
+                        });
+                        
+                        if (assignResponse.data.success) {
+                            log(`工单分配成功，状态: ${assignResponse.data.data.status}`, 'success');
+                            
+                            // 4. 接受工单
+                            log('接受工单...');
+                            const acceptResponse = await axios.post(`${API_BASE_URL}/tickets/${testTicketId}/accept`, {
+                                comment: '调试测试接受'
+                            });
+                            
+                            if (acceptResponse.data.success) {
+                                log(`工单接受成功，状态: ${acceptResponse.data.data.status}`, 'success');
+                                
+                                // 5. 审批工单
+                                log('审批工单...');
+                                const approveResponse = await axios.put(`${API_BASE_URL}/tickets/${testTicketId}/status`, {
+                                    status: 'approved',
+                                    comment: '调试测试审批'
+                                });
+                                
+                                if (approveResponse.data.success) {
+                                    log(`工单审批成功，状态: ${approveResponse.data.data.status}`, 'success');
+                                    
+                                    // 6. 开始处理
+                                    log('开始处理工单...');
+                                    const progressResponse = await axios.put(`${API_BASE_URL}/tickets/${testTicketId}/status`, {
+                                        status: 'progress',
+                                        comment: '调试测试开始处理'
+                                    });
+                                    
+                                    if (progressResponse.data.success) {
+                                        log(`开始处理成功，状态: ${progressResponse.data.data.status}`, 'success');
+                                        log('所有API测试完成！', 'success');
+                                    } else {
+                                        log('开始处理失败: ' + JSON.stringify(progressResponse.data), 'error');
+                                    }
+                                } else {
+                                    log('审批失败: ' + JSON.stringify(approveResponse.data), 'error');
+                                }
+                            } else {
+                                log('接受工单失败: ' + JSON.stringify(acceptResponse.data), 'error');
+                            }
+                        } else {
+                            log('分配工单失败: ' + JSON.stringify(assignResponse.data), 'error');
+                        }
+                    } else {
+                        log('创建工单失败: ' + JSON.stringify(createResponse.data), 'error');
+                    }
+                } else {
+                    log('登录失败: ' + JSON.stringify(loginResponse.data), 'error');
+                }
+                
+            } catch (error) {
+                log('API调用异常: ' + error.message, 'error');
+                if (error.response) {
+                    log('错误状态码: ' + error.response.status, 'error');
+                    log('错误响应: ' + JSON.stringify(error.response.data), 'error');
+                }
+            }
+        }
+        
+        // 页面加载后自动运行测试
+        window.addEventListener('load', testAPI);
+    </script>
+</body>
+</html>

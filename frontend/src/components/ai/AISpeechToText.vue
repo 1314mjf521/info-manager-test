@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-speech-to-text">
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -306,8 +306,8 @@ import {
   Loading,
   Delete
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime, formatDateTime } from '@/utils/format'
+import { http } from '../../utils/http'
+import { formatTime, formatDateTime } from '../../utils/format'
 
 // 响应式数据
 const aiConfigs = ref([])

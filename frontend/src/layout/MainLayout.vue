@@ -110,8 +110,8 @@ import {
   Key,
   List
 } from '@element-plus/icons-vue'
-import { useAuthStore } from '@/stores/auth'
-import PublicAnnouncements from '@/components/PublicAnnouncements.vue'
+import { useAuthStore } from '../stores/auth'
+import PublicAnnouncements from '../components/PublicAnnouncements.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

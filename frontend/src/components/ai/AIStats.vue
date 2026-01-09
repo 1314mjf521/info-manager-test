@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-stats">
     <!-- 统计概览 -->
     <div class="stats-overview">
@@ -248,8 +248,8 @@ import {
   Refresh,
   Download
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime } from '@/utils/format'
+import { http } from '../../utils/http'
+import { formatTime } from '../../utils/format'
 import * as echarts from 'echarts'
 
 // 响应式数据

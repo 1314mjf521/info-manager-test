@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-chat">
     <div class="chat-container">
       <!-- 聊天会话列表 -->
@@ -153,8 +153,8 @@ import {
   User,
   Avatar
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime } from '@/utils/format'
+import { http } from '../../utils/http'
+import { formatTime } from '../../utils/format'
 
 // 类型定义
 interface ChatSession {

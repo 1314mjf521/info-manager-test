@@ -464,14 +464,34 @@ func (h *TicketHandler) AssignTicket(c *gin.Context) {
 	}
 
 	// 更新工单
+	oldAssigneeID := ticket.AssigneeID
 	ticket.AssigneeID = &req.AssigneeID
+	
+	// 状态处理逻辑
 	if ticket.Status == models.TicketStatusSubmitted {
+		// 首次分配
 		if req.AutoAccept {
 			ticket.Status = models.TicketStatusAccepted
 		} else {
 			ticket.Status = models.TicketStatusAssigned
 		}
+	} else if oldAssigneeID != nil && *oldAssigneeID != req.AssigneeID {
+		// 重新分配给不同的人
+		if req.AutoAccept {
+			ticket.Status = models.TicketStatusAccepted
+		} else {
+			// 重新分配时，如果工单之前已经被接受或审批，保持较高的状态
+			if ticket.Status == models.TicketStatusAccepted || 
+			   ticket.Status == models.TicketStatusApproved || 
+			   ticket.Status == models.TicketStatusInProgress {
+				// 重新分配后默认自动接受，避免流程倒退
+				ticket.Status = models.TicketStatusAccepted
+			} else {
+				ticket.Status = models.TicketStatusAssigned
+			}
+		}
 	}
+	// 如果分配给同一个人，保持原状态
 
 	if err := h.db.Save(&ticket).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "分配工单失败"})
@@ -548,7 +568,12 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 
 	// 验证状态转换是否合法
 	if !isValidStatusTransition(ticket.Status, models.TicketStatus(req.Status)) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的状态转换"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "无效的状态转换",
+			"current_status": string(ticket.Status),
+			"target_status": req.Status,
+			"debug": "状态转换验证失败",
+		})
 		return
 	}
 
@@ -736,8 +761,9 @@ func isValidStatusTransition(from, to models.TicketStatus) bool {
 			models.TicketStatusReturned,
 		},
 		models.TicketStatusApproved: {
-			models.TicketStatusInProgress,
+			models.TicketStatusInProgress, // "progress" - 允许从审批状态直接进入处理状态
 			models.TicketStatusReturned,
+			models.TicketStatusRejected,   // 允许审批后拒绝
 		},
 		models.TicketStatusInProgress: {
 			models.TicketStatusPending,

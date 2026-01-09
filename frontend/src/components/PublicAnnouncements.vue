@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="public-announcements-wrapper">
 
 
@@ -57,7 +57,7 @@ import {
   Timer,
   View
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
+import { http } from '../utils/request'
 
 interface Announcement {
   id: number

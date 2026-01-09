@@ -1,0 +1,2 @@
+import{y as r,z as s,B as o,A as t}from"./vendor-CjKLjCsc.js";import{_ as a}from"./_plugin-vue_export-helper-DlAUqK2U.js";const n={class:"record-form"},c=r({__name:"RecordFormView",setup(_){return(m,e)=>(t(),s("div",n,[...e[0]||(e[0]=[o("h1",null,"记录表单",-1),o("p",null,"记录表单功能开发中",-1)])]))}}),l=a(c,[["__scopeId","data-v-99e76a85"]]);export{l as default};
+//# sourceMappingURL=RecordFormView-BKhaAvVT.js.map

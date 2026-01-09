@@ -1,41 +1,28 @@
 @echo off
-echo === Rebuilding and Starting Info Management System ===
+echo 重新编译并启动后端服务器...
 
-echo.
-echo 1. Stopping existing server...
+echo 停止现有服务器...
 taskkill /f /im server.exe 2>nul
-timeout /t 2 >nul
 
-echo.
-echo 2. Building backend...
-go build -o server.exe cmd/server/main.go
+echo 编译后端...
+go build -o build/server.exe cmd/server/main.go
+
 if %errorlevel% neq 0 (
-    echo Build failed!
+    echo 编译失败！
     pause
     exit /b 1
 )
 
-echo.
-echo 3. Starting server...
-start "Info Management Server" server.exe
+echo 启动服务器...
+start "Info Management Server" build\server.exe
 
-echo.
-echo 4. Waiting for server to start...
-timeout /t 5 >nul
+echo 等待服务器启动...
+timeout /t 3 /nobreak >nul
 
+echo 后端服务器已启动！
+echo 访问地址: http://localhost:8080
+echo 前端地址: http://localhost:3000
+echo 默认账号: admin / admin123
 echo.
-echo 5. Testing server...
-curl -s http://localhost:8080/health >nul
-if %errorlevel% equ 0 (
-    echo ✓ Server is running
-) else (
-    echo ✗ Server failed to start
-)
-
-echo.
-echo === Server started successfully ===
-echo Frontend: http://localhost:3000
-echo Backend:  http://localhost:8080
-echo.
-echo Please refresh your browser to see the ticket management menu.
-pause
+echo 按任意键关闭此窗口...
+pause >nul

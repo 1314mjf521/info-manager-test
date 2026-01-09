@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="system-management">
     <el-card>
       <template #header>
@@ -487,7 +487,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Monitor, Setting, Bell, Document, Plus } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
+import { http } from '../../utils/request'
 import dayjs from 'dayjs'
 
 // 响应式数据

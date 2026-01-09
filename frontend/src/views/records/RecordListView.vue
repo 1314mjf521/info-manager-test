@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="record-list">
     <!-- API连接状态提示 -->
     <el-alert
@@ -346,9 +346,9 @@ import { ref, reactive, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Plus, Refresh, Document, ArrowDown, Upload, UploadFilled } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { API_ENDPOINTS } from '@/config/api'
-import { useEventBus } from '@/utils/eventBus'
+import { http } from '../../utils/request'
+import { API_ENDPOINTS } from '../../config/api'
+import { useEventBus } from '../../utils/eventBus'
 import dayjs from 'dayjs'
 
 const router = useRouter()

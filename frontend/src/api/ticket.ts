@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+﻿import request from '../utils/request'
 
 export interface TicketQuery {
   page?: number
@@ -78,34 +78,50 @@ export const ticketApi = {
     return request.post(`/tickets/${id}/assign`, data)
   },
 
-  // 重新分配工单
+  // 重新分配工单 (使用assign路由)
   reassignTicket(id: number, data: AssignTicketData) {
-    return request.post(`/tickets/${id}/reassign`, data)
+    return request.post(`/tickets/${id}/assign`, data)
   },
 
   // 接受工单
   acceptTicket(id: number, comment?: string) {
-    return request.post(`/tickets/${id}/accept`, { comment })
+    const data: any = {}
+    if (comment !== undefined && comment !== null && comment !== '') {
+      data.comment = comment
+    }
+    return request.post(`/tickets/${id}/accept`, data)
   },
 
   // 拒绝工单
-  rejectTicket(id: number, comment?: string) {
-    return request.post(`/tickets/${id}/reject`, { comment })
+  rejectTicket(id: number, reason: string) {
+    return request.post(`/tickets/${id}/reject`, { reason })
   },
 
   // 重新打开工单
   reopenTicket(id: number, comment?: string) {
-    return request.post(`/tickets/${id}/reopen`, { comment })
+    const data: any = {}
+    if (comment !== undefined && comment !== null && comment !== '') {
+      data.comment = comment
+    }
+    return request.post(`/tickets/${id}/reopen`, data)
   },
 
   // 重新提交工单
   resubmitTicket(id: number, comment?: string) {
-    return request.post(`/tickets/${id}/resubmit`, { comment })
+    const data: any = {}
+    if (comment !== undefined && comment !== null && comment !== '') {
+      data.comment = comment
+    }
+    return request.post(`/tickets/${id}/resubmit`, data)
   },
 
   // 更新工单状态
   updateTicketStatus(id: number, status: string, comment?: string) {
-    return request.put(`/tickets/${id}/status`, { status, comment })
+    const data: any = { status }
+    if (comment !== undefined && comment !== null && comment !== '') {
+      data.comment = comment
+    }
+    return request.put(`/tickets/${id}/status`, data)
   },
 
   // 工单审批
@@ -203,25 +219,5 @@ export const ticketApi = {
         'Content-Type': 'multipart/form-data'
       }
     })
-  },
-
-  // 删除工单附件
-  deleteTicketAttachment(ticketId: number, attachmentId: number) {
-    return request.delete(`/tickets/${ticketId}/attachments/${attachmentId}`)
-  },
-
-  // 获取工单类型
-  getTicketCategories() {
-    return request.get('/tickets/categories')
-  },
-
-  // 获取自动分配规则
-  getAssignmentRules() {
-    return request.get('/tickets/assignment-rules')
-  },
-
-  // 更新自动分配规则
-  updateAssignmentRules(rules: any) {
-    return request.put('/tickets/assignment-rules', rules)
   }
 }

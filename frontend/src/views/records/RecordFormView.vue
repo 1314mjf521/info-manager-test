@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="record-form">
     <el-card>
       <template #header>
@@ -266,11 +266,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UploadFilled, Paperclip, Picture, Document, Files, Delete, Plus } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { useAuthStore } from '@/stores/auth'
-import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
-import DynamicForm from '@/components/DynamicForm.vue'
-import { useEventBus } from '@/utils/eventBus'
+import { http } from '../../utils/request'
+import { useAuthStore } from '../../stores/auth'
+import { API_CONFIG, API_ENDPOINTS } from '../../config/api'
+import DynamicForm from '../../components/DynamicForm.vue'
+import { useEventBus } from '../../utils/eventBus'
 
 const router = useRouter()
 const route = useRoute()

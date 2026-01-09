@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-config-simple">
     <!-- 快速配置区域 -->
     <el-card class="quick-config-card">
@@ -252,7 +252,7 @@ import {
   List,
   DataAnalysis
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
+import { http } from '../../utils/http'
 
 // 响应式数据
 const saving = ref(false)

@@ -1,0 +1,2 @@
+import{y as s,z as t,B as o,A as a}from"./vendor-CjKLjCsc.js";import{_ as n}from"./_plugin-vue_export-helper-DlAUqK2U.js";const r={class:"role-list"},l=s({__name:"RoleListView",setup(_){return(c,e)=>(a(),t("div",r,[...e[0]||(e[0]=[o("h1",null,"角色管理",-1),o("p",null,"角色管理功能开发中",-1)])]))}}),m=n(l,[["__scopeId","data-v-5511705c"]]);export{m as default};
+//# sourceMappingURL=RoleListView-DESUrHA6.js.map

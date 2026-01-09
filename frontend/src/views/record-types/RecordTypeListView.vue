@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="record-type-list">
     <el-card>
       <template #header>
@@ -405,8 +405,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, ArrowDown, UploadFilled, Document } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { API_ENDPOINTS } from '@/config/api'
+import { http } from '../../utils/request'
+import { API_ENDPOINTS } from '../../config/api'
 import dayjs from 'dayjs'
 
 // 响应式数据

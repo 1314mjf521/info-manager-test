@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-test">
     <h1>工单系统测试页面</h1>
     
@@ -42,8 +42,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { ticketApi } from '@/api/ticket'
+import { useAuthStore } from '../../stores/auth'
+import { ticketApi } from '../../api/ticket'
 
 const router = useRouter()
 const authStore = useAuthStore()

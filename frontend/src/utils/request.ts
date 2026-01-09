@@ -1,8 +1,8 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+﻿import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import { API_CONFIG } from '@/config/api'
-import router from '@/router'
+import { useAuthStore } from '../stores/auth'
+import { API_CONFIG } from '../config/api'
+import router from '../router'
 
 // 重试配置
 const RETRY_CONFIG = {
@@ -212,3 +212,4 @@ export const http = {
 }
 
 export default request
+

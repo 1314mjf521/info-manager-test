@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="permission-selector">
     <div class="selector-header" v-if="showHeader">
       <div class="header-info">
@@ -93,8 +93,8 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElTree } from 'element-plus'
 import { Search, Expand, Fold } from '@element-plus/icons-vue'
-import http from '@/utils/request'
-import type { Permission } from '@/types'
+import http from '../../utils/request'
+import type { Permission } from '../../types'
 
 interface Props {
   modelValue?: number[]

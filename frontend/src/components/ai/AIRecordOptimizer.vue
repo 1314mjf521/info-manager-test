@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-record-optimizer">
     <!-- 工具栏 -->
     <div class="toolbar">
@@ -242,9 +242,9 @@ import {
   Loading,
   Document
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
-import { formatTime } from '@/utils/format'
-import RecordSelector from '@/components/records/RecordSelector.vue'
+import { http } from '../../utils/http'
+import { formatTime } from '../../utils/format'
+import RecordSelector from '../../components/records/RecordSelector.vue'
 
 // 响应式数据
 const aiConfigs = ref([])

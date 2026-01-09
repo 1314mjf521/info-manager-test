@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-test">
     <h1>工单权限测试</h1>
     
@@ -60,8 +60,8 @@
 </template>
 
 <script setup lang="ts">
-import { useTicketPermissions } from '@/utils/ticketPermissions'
-import { useAuthStore } from '@/stores/auth'
+import { useTicketPermissions } from '../../utils/ticketPermissions'
+import { useAuthStore } from '../../stores/auth'
 
 const ticketPermissions = useTicketPermissions()
 const authStore = useAuthStore()

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="user-list">
     <el-card>
       <template #header>
@@ -175,10 +175,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { http } from '@/utils/request'
-import { API_ENDPOINTS } from '@/config/api'
+import { http } from '../../utils/request'
+import { API_ENDPOINTS } from '../../config/api'
 import dayjs from 'dayjs'
-import { useEventBus } from '@/utils/eventBus'
+import { useEventBus } from '../../utils/eventBus'
 
 // 响应式数据
 const loading = ref(false)

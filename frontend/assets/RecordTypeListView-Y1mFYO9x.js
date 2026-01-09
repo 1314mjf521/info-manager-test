@@ -1,0 +1,2 @@
+import{y as o,z as s,B as t,A as r}from"./vendor-CjKLjCsc.js";import{_ as a}from"./_plugin-vue_export-helper-DlAUqK2U.js";const c={class:"record-type-list"},n=o({__name:"RecordTypeListView",setup(p){return(_,e)=>(r(),s("div",c,[...e[0]||(e[0]=[t("h1",null,"记录类型管理",-1),t("p",null,"记录类型管理功能开发中",-1)])]))}}),l=a(n,[["__scopeId","data-v-5220616c"]]);export{l as default};
+//# sourceMappingURL=RecordTypeListView-Y1mFYO9x.js.map

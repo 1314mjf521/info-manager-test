@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ticket-detail">
     <div class="page-header">
       <div class="header-left">
@@ -271,7 +271,7 @@
     <el-dialog v-model="showUploadDialog" title="上传附件" width="400px">
       <el-upload
         ref="uploadRef"
-        :action="`/api/v1/tickets/${ticketId}/attachments`"
+        :action="`${API_CONFIG.BASE_URL}${API_CONFIG.VERSION}/tickets/${ticketId}/attachments`"
         :headers="{ Authorization: `Bearer ${authStore.token}` }"
         :on-success="handleUploadSuccess"
         :on-error="handleUploadError"
@@ -296,11 +296,12 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, ArrowDown, Document, UploadFilled, User, Check, Loading, Check as CircleCheck } from '@element-plus/icons-vue'
-import { ticketApi } from '@/api/ticket'
-import { userApi } from '@/api/user'
-import { useTicketPermissions } from '@/utils/ticketPermissions'
-import { useAuthStore } from '@/stores/auth'
-import { formatDateTime } from '@/utils/date'
+import { ticketApi } from '../../api/ticket'
+import { userApi } from '../../api/user'
+import { useTicketPermissions } from '../../utils/ticketPermissions'
+import { useAuthStore } from '../../stores/auth'
+import { formatDateTime } from '../../utils/date'
+import { API_CONFIG } from '../../config/api'
 
 const route = useRoute()
 const router = useRouter()

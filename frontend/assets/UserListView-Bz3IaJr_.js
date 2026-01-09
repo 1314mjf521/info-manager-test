@@ -1,0 +1,2 @@
+import{y as t,z as o,B as s,A as r}from"./vendor-CjKLjCsc.js";import{_ as a}from"./_plugin-vue_export-helper-DlAUqK2U.js";const n={class:"user-list"},_=t({__name:"UserListView",setup(c){return(i,e)=>(r(),o("div",n,[...e[0]||(e[0]=[s("h1",null,"用户管理",-1),s("p",null,"用户管理功能开发中",-1)])]))}}),m=a(_,[["__scopeId","data-v-e0c3364c"]]);export{m as default};
+//# sourceMappingURL=UserListView-Bz3IaJr_.js.map

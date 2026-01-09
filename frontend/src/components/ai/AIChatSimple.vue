@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ai-chat-simple">
     <!-- 聊天界面 -->
     <div class="chat-container">
@@ -143,7 +143,7 @@ import {
   User,
   Avatar
 } from '@element-plus/icons-vue'
-import { http } from '@/utils/http'
+import { http } from '../../utils/http'
 
 // 响应式数据
 const inputMessage = ref('')

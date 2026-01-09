@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="register-container">
     <div class="register-card">
       <div class="register-header">
@@ -80,7 +80,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '../../stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
